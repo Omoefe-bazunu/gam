@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #010e5a;
+    margin: 0;
+    padding: 0;
+  }
+}
