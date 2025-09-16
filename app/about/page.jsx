@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaUsers, FaHandshake, FaBullseye } from "react-icons/fa";
 import {
@@ -9,75 +9,74 @@ import {
   FaTwitter,
   FaLinkedinIn,
 } from "react-icons/fa";
-
-const aboutData = [
-  {
-    id: 1,
-    icon: <FaUsers size={22} />,
-    title: "Who We Are",
-    text: "Gambrills Partners LLC is a consultancy and technology solutions firm dedicated to helping businesses solve complex challenges and achieve sustainable growth. We bring together the worlds of strategy and technology, empowering organizations to modernize, scale, and succeed",
-  },
-  {
-    id: 2,
-    icon: <FaHandshake size={22} />,
-    title: "Our Mission",
-    text: "To empower businesses through innovation, strategy, and technology-driven solutions that create measurable impact.",
-  },
-  {
-    id: 3,
-    icon: <FaBullseye size={22} />,
-    title: "Our Vision",
-    text: "To be a trusted global partner for organizations seeking growth, transformation, and competitive advantage in the digital era.",
-  },
-];
-
-const teamMembers = [
-  {
-    name: "Reece Bronson",
-    role: "Marketing",
-    image: "/services/consulting.png",
-    social: {
-      facebook: "https://facebook.com/reecebronson",
-      twitter: "https://twitter.com/reecebronson",
-      linkedin: "https://linkedin.com/in/reecebronson",
-    },
-  },
-  {
-    name: "Daniyel Karlos",
-    role: "Business eng.",
-    image: "/services/consulting.png",
-    social: {
-      facebook: "https://facebook.com/daniyelkarlos",
-      twitter: "https://twitter.com/daniyelkarlos",
-      linkedin: "https://linkedin.com/in/daniyelkarlos",
-    },
-  },
-  {
-    name: "Brooklyn Simmons",
-    role: "Finance advisor",
-    image: "/services/consulting.png",
-    social: {
-      facebook: "https://facebook.com/brooklynsimmons",
-      twitter: "https://twitter.com/brooklynsimmons",
-      linkedin: "https://linkedin.com/in/brooklynsimmons",
-    },
-  },
-  {
-    name: "John Doe",
-    role: "UX Designer",
-    image: "/services/consulting.png",
-    social: {
-      facebook: "https://facebook.com/johndoe",
-      twitter: "https://twitter.com/johndoe",
-      linkedin: "https://linkedin.com/in/johndoe",
-    },
-  },
-];
+import {
+  collection,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "@/src/utils/firebase";
+import { useAuth } from "@/src/contexts/AuthContext";
 
 export default function AboutUs() {
   const [activeId, setActiveId] = useState(1);
   const [currentPage, setCurrentPage] = useState(0);
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [newMember, setNewMember] = useState({
+    name: "",
+    role: "",
+    imageBase64: "",
+    social: { facebook: "", twitter: "", linkedin: "" },
+    bio: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+
+  const adminEmails = process.env.NEXT_PUBLIC_ADMIN
+    ? process.env.NEXT_PUBLIC_ADMIN.split(",")
+    : [];
+  const isUserAdmin = !authLoading && user && adminEmails.includes(user.email);
+
+  const aboutData = [
+    {
+      id: 1,
+      icon: <FaUsers size={22} />,
+      title: "Who We Are",
+      text: "Gambrills Partners LLC is a consultancy and technology solutions firm dedicated to helping businesses solve complex challenges and achieve sustainable growth. We bring together the worlds of strategy and technology, empowering organizations to modernize, scale, and succeed",
+    },
+    {
+      id: 2,
+      icon: <FaHandshake size={22} />,
+      title: "Our Mission",
+      text: "To empower businesses through innovation, strategy, and technology-driven solutions that create measurable impact.",
+    },
+    {
+      id: 3,
+      icon: <FaBullseye size={22} />,
+      title: "Our Vision",
+      text: "To be a trusted global partner for organizations seeking growth, transformation, and competitive advantage in the digital era.",
+    },
+  ];
+
   const featuredImage = "/services/consulting.png";
+
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "teamMembers"));
+        const fetchedMembers = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setTeamMembers(fetchedMembers);
+      } catch (error) {
+        console.error("Error fetching team members from Firebase:", error);
+      }
+    };
+
+    fetchTeamMembers();
+  }, []);
 
   const membersPerPage = 3;
   const totalPages = Math.ceil(teamMembers.length / membersPerPage);
@@ -95,13 +94,54 @@ export default function AboutUs() {
     setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
   };
 
+  const handleAddMember = () => {
+    setAddModalOpen(true);
+  };
+
+  const handleSaveMember = async (e) => {
+    e.preventDefault();
+    if (newMember.bio.length > 400) {
+      alert("Bio must be 400 characters or less.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await addDoc(collection(db, "teamMembers"), {
+        ...newMember,
+        timestamp: serverTimestamp(),
+      });
+      const querySnapshot = await getDocs(collection(db, "teamMembers"));
+      setTeamMembers(
+        querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      );
+      setNewMember({
+        name: "",
+        role: "",
+        imageBase64: "",
+        social: { facebook: "", twitter: "", linkedin: "" },
+        bio: "",
+      });
+      setAddModalOpen(false);
+    } catch (error) {
+      console.error("Error adding team member:", error);
+    }
+    setLoading(false);
+  };
+
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   return (
     <section id="about" className="flex flex-col items-center bg-white py-20">
       <div
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-14"
-        style={{
-          paddingTop: "100px",
-        }}
+        style={{ paddingTop: "100px" }}
       >
         <h2 className="text-3xl font-bold text-secondary-blue text-center mb-12">
           About Us
@@ -118,11 +158,7 @@ export default function AboutUs() {
               className="relative overflow-hidden rounded-2xl shadow-2xl border border-gray-100"
               whileHover={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 120 }}
-              style={{
-                width: "100%",
-                maxWidth: 520,
-                height: 520,
-              }}
+              style={{ width: "100%", maxWidth: 520, height: 520 }}
             >
               <img
                 src={featuredImage}
@@ -211,10 +247,7 @@ export default function AboutUs() {
       </div>
       <div
         className="w-full text-white flex flex-col gap-8 items-center px-4 py-12"
-        style={{
-          backgroundColor: "#010e5a",
-          marginTop: "60px",
-        }}
+        style={{ backgroundColor: "#010e5a", marginTop: "60px" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-14">
           <p className="text-2xl text-center font-semibold font-primary mb-6">
@@ -281,12 +314,20 @@ export default function AboutUs() {
             <p className="text-sm text-gray-600 mt-2">
               Meet the talented individuals shaping our success.
             </p>
+            {isUserAdmin && (
+              <button
+                onClick={handleAddMember}
+                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+              >
+                Add Team Member
+              </button>
+            )}
           </div>
           <div className="relative">
             <div className="flex overflow-hidden flex-col md:flex-row">
-              {displayedMembers.map((member, index) => (
+              {displayedMembers.map((member) => (
                 <motion.div
-                  key={index}
+                  key={member.id}
                   className="min-w-[33.33%] p-4 flex-shrink-0"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -298,7 +339,7 @@ export default function AboutUs() {
                   >
                     <div className="w-full h-64 overflow-hidden relative group">
                       <img
-                        src={member.image}
+                        src={member.imageBase64}
                         alt={member.name}
                         className="w-full h-full object-cover rounded-lg"
                       />
@@ -330,8 +371,11 @@ export default function AboutUs() {
                       </div>
                     </div>
                     <div className="p-6 text-left">
-                      <h3 className="text-lg font-semibold ">{member.name}</h3>
-                      <p className="text-sm ">{member.role}</p>
+                      <h3 className="text-lg font-semibold">{member.name}</h3>
+                      <p className="text-sm">{member.role}</p>
+                      <p className="text-xs text-gray-500 max-w-xs whitespace-normal break-words">
+                        {member.bio}
+                      </p>
                     </div>
                   </div>
                 </motion.div>
@@ -356,6 +400,149 @@ export default function AboutUs() {
           </div>
         </div>
       </div>
+
+      {addModalOpen && isUserAdmin && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold text-secondary-blue mb-4">
+              Add Team Member
+            </h3>
+            <form onSubmit={handleSaveMember}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={newMember.name}
+                  onChange={(e) =>
+                    setNewMember({ ...newMember, name: e.target.value })
+                  }
+                  className="mt-1 p-2 w-full border border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Role
+                </label>
+                <input
+                  type="text"
+                  value={newMember.role}
+                  onChange={(e) =>
+                    setNewMember({ ...newMember, role: e.target.value })
+                  }
+                  className="mt-1 p-2 w-full border border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Image
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const base64 = await convertToBase64(file);
+                      setNewMember({ ...newMember, imageBase64: base64 });
+                    }
+                  }}
+                  className="mt-1 p-2 w-full border border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Bio (400 chars max)
+                </label>
+                <textarea
+                  value={newMember.bio}
+                  onChange={(e) =>
+                    setNewMember({ ...newMember, bio: e.target.value })
+                  }
+                  maxLength={400}
+                  className="mt-1 p-2 w-full border border-gray-300 rounded h-20"
+                  placeholder="Brief bio (max 400 characters)"
+                />
+                <p className="text-xs text-gray-500">
+                  {newMember.bio.length}/400 characters
+                </p>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Facebook
+                </label>
+                <input
+                  type="url"
+                  value={newMember.social.facebook}
+                  onChange={(e) =>
+                    setNewMember({
+                      ...newMember,
+                      social: { ...newMember.social, facebook: e.target.value },
+                    })
+                  }
+                  className="mt-1 p-2 w-full border border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Twitter
+                </label>
+                <input
+                  type="url"
+                  value={newMember.social.twitter}
+                  onChange={(e) =>
+                    setNewMember({
+                      ...newMember,
+                      social: { ...newMember.social, twitter: e.target.value },
+                    })
+                  }
+                  className="mt-1 p-2 w-full border border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  LinkedIn
+                </label>
+                <input
+                  type="url"
+                  value={newMember.social.linkedin}
+                  onChange={(e) =>
+                    setNewMember({
+                      ...newMember,
+                      social: { ...newMember.social, linkedin: e.target.value },
+                    })
+                  }
+                  className="mt-1 p-2 w-full border border-gray-300 rounded"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setAddModalOpen(false)}
+                  className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? "Adding..." : "Add Member"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .line-clamp-faux {
           display: -webkit-box;

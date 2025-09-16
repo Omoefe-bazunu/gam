@@ -1,13 +1,20 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { MdArrowOutward, MdMenu, MdClose } from "react-icons/md";
+import {
+  MdArrowOutward,
+  MdMenu,
+  MdClose,
+  MdKeyboardArrowDown,
+} from "react-icons/md";
 import { useAuth } from "@/src/contexts/AuthContext";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isServicesOpen, setIsServicesOpen] = useState(false);
+  const [isMobileServicesOpen, setIsMobileServicesOpen] = useState(false);
 
-  const { user, googleSignIn, logout } = useAuth(); // get auth state + actions
+  const { user, logout } = useAuth(); // get auth state + actions
 
   useEffect(() => {
     const handleScroll = () => {
@@ -53,16 +60,40 @@ const Header = () => {
         </div>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex space-x-4">
+        <nav className="hidden md:flex space-x-4 relative">
           <a href="/" className="hover:text-orange-500">
             Home
           </a>
           <a href="/about" className="hover:text-orange-500">
             About Us
           </a>
-          <a href="/services" className="hover:text-orange-500">
-            Services
-          </a>
+
+          {/* Services Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsServicesOpen(!isServicesOpen)}
+              className="flex items-center hover:text-orange-500 focus:outline-none"
+            >
+              Services <MdKeyboardArrowDown className="ml-1" />
+            </button>
+            {isServicesOpen && (
+              <div className="absolute top-full left-0 mt-2 bg-white shadow-lg rounded-md w-40">
+                <a
+                  href="/services"
+                  className="block px-4 py-2 hover:bg-gray-100 text-primary-blue"
+                >
+                  General
+                </a>
+                <a
+                  href="/case-stories"
+                  className="block px-4 py-2 hover:bg-gray-100 text-primary-blue"
+                >
+                  Case Stories
+                </a>
+              </div>
+            )}
+          </div>
+
           <a href="/blog" className="hover:text-orange-500">
             Blog
           </a>
@@ -102,9 +133,35 @@ const Header = () => {
               <a href="/about" className="hover:text-orange-500 py-2">
                 About Us
               </a>
-              <a href="/services" className="hover:text-orange-500 py-2">
-                Services
-              </a>
+
+              {/* Mobile Services Dropdown */}
+              <div>
+                <button
+                  onClick={() => setIsMobileServicesOpen(!isMobileServicesOpen)}
+                  className="flex items-center justify-between w-full hover:text-orange-500 py-2"
+                >
+                  <span>Services</span>
+                  <MdKeyboardArrowDown
+                    className={`ml-2 transform transition-transform ${
+                      isMobileServicesOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {isMobileServicesOpen && (
+                  <div className="pl-4 flex flex-col">
+                    <a href="/services" className="hover:text-orange-500 py-2">
+                      General
+                    </a>
+                    <a
+                      href="/case-stories"
+                      className="hover:text-orange-500 py-2"
+                    >
+                      Case Stories
+                    </a>
+                  </div>
+                )}
+              </div>
+
               <a href="/blog" className="hover:text-orange-500 py-2">
                 Blog
               </a>

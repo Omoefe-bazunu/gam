@@ -1,29 +1,28 @@
-import React from "react";
-
-const serviceItems = [
-  {
-    title: "Business Strategy & Process Consulting",
-    description: "Unlock growth through clarity and efficiency.",
-    imageUrl: "/services/businessstrategy.png",
-  },
-  {
-    title: "Digital Transformation Advisory",
-    description: "Reimagine your business with future-ready solutions.",
-    imageUrl: "/services/fureready.png",
-  },
-  {
-    title: "Custom Software & Web Solutions",
-    description: "Build technology that adapts to your needs.",
-    imageUrl: "/services/websolutions.png",
-  },
-  {
-    title: "IT Consulting & Advisory",
-    description: "Make smarter technology investments with confidence.",
-    imageUrl: "/services/consulting.png",
-  },
-];
+"use client";
+import React, { useState, useEffect } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/src/utils/firebase";
 
 const ServicesSection = () => {
+  const [serviceItems, setServiceItems] = useState([]);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "services"));
+        const fetchedServices = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setServiceItems(fetchedServices);
+      } catch (error) {
+        console.error("Error fetching services from Firebase:", error);
+      }
+    };
+
+    fetchServices();
+  }, []);
+
   return (
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-14">
@@ -31,13 +30,13 @@ const ServicesSection = () => {
           Services Overview
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {serviceItems.map((item, index) => (
+          {serviceItems.map((item) => (
             <div
-              key={index}
+              key={item.id}
               className="bg-gray-100 p-6 text-secondary-blue hover:bg-primary-blue hover:text-white rounded-lg shadow-lg text-center transition-all duration-300 hover:scale-105"
             >
               <img
-                src={item.imageUrl}
+                src={item.imageBase64}
                 alt={item.title}
                 className="w-full h-48 object-cover rounded-lg border-3 border-white"
               />

@@ -3,49 +3,9 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaThumbsUp, FaShareAlt, FaComment } from "react-icons/fa";
-
-const blogPosts = [
-  {
-    id: 1,
-    title: "The Future of Business Consulting",
-    content:
-      "In-depth analysis on how AI and data analytics are revolutionizing the consulting industry. Learn about the tools and strategies top firms are adopting...",
-    image: "/services/consulting.png",
-    date: "September 10, 2025",
-    reactions: 45,
-    comments: 12,
-  },
-  {
-    id: 2,
-    title: "5 Strategies for Effective Team Collaboration",
-    content:
-      "Discover five proven strategies to enhance team collaboration, including regular check-ins and leveraging technology...",
-    image: "/services/consulting.png",
-    date: "September 8, 2025",
-    reactions: 28,
-    comments: 5,
-  },
-  {
-    id: 3,
-    title: "Digital Transformation Success Stories",
-    content:
-      "Explore case studies of companies that successfully transformed through digital innovation, including their challenges and outcomes...",
-    image: "/services/consulting.png",
-    date: "September 5, 2025",
-    reactions: 67,
-    comments: 19,
-  },
-  {
-    id: 4,
-    title: "The Role of ERP in Modern Businesses",
-    content:
-      "Understand the critical role ERP systems play in streamlining operations and driving business growth with real-world examples...",
-    image: "/services/consulting.png",
-    date: "September 3, 2025",
-    reactions: 33,
-    comments: 8,
-  },
-];
+import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { db } from "@/src/utils/firebase";
+import { useAuth } from "@/src/contexts/AuthContext";
 
 export default function BlogDetails() {
   const params = useParams();
@@ -53,21 +13,42 @@ export default function BlogDetails() {
   const [reactionCount, setReactionCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [related, setRelated] = useState([]);
+  const { user, loading: authLoading } = useAuth();
+
+  const adminEmails = process.env.NEXT_PUBLIC_ADMIN
+    ? process.env.NEXT_PUBLIC_ADMIN.split(",")
+    : [];
+  const isUserAdmin = !authLoading && user && adminEmails.includes(user.email);
 
   useEffect(() => {
     if (params.id) {
-      const id = params.id;
-      const foundPost = blogPosts.find((post) => post.id === parseInt(id));
-      setPost(foundPost);
-      setReactionCount(foundPost ? foundPost.reactions : 0);
+      const fetchPost = async () => {
+        try {
+          const postDoc = await getDoc(doc(db, "blogPosts", params.id));
+          if (postDoc.exists()) {
+            const postData = { id: postDoc.id, ...postDoc.data() };
+            setPost(postData);
+            setReactionCount(postData.reactions || 0);
 
-      // filter related posts (exclude current one, pick max 3)
-      const relatedPosts = blogPosts
-        .filter((p) => p.id !== parseInt(id))
-        .slice(0, 3);
-      setRelated(relatedPosts);
+            // Fetch all posts for related
+            const querySnapshot = await getDocs(collection(db, "blogPosts"));
+            const allPosts = querySnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            const relatedPosts = allPosts
+              .filter((p) => p.id !== params.id)
+              .slice(0, 3);
+            setRelated(relatedPosts);
+          }
+          setIsLoading(false);
+        } catch (error) {
+          console.error("Error fetching post from Firebase:", error);
+          setIsLoading(false);
+        }
+      };
 
-      setIsLoading(false);
+      fetchPost();
     }
   }, [params.id]);
 
@@ -75,19 +56,42 @@ export default function BlogDetails() {
     setReactionCount((prev) => prev + 1);
   };
 
-  if (isLoading) return <div className="text-center py-20">Loading...</div>;
-  if (!post) return <div className="text-center py-20">Post not found</div>;
+  if (isLoading)
+    return (
+      <section
+        id="blog-details-loading"
+        className="flex flex-col items-center justify-center min-h-screen bg-white py-20"
+      >
+        <div className="flex flex-col items-center justify-center">
+          {/* Blinking ellipsis */}
+          <div className="flex space-x-2">
+            <span className="h-3 w-3 bg-primary-blue rounded-full animate-pulse"></span>
+            <span className="h-3 w-3 bg-primary-blue rounded-full animate-pulse delay-200"></span>
+            <span className="h-3 w-3 bg-primary-blue rounded-full animate-pulse delay-400"></span>
+          </div>
+          {/* <p className="mt-6 text-lg text-gray-700">Loading post...</p> */}
+        </div>
+      </section>
+    );
+  if (!post)
+    return (
+      <div className="text-center py-20" style={{ paddingTop: "100px" }}>
+        <p className="text-xl text-gray-700">
+          Post not found. Please check the URL.
+        </p>
+      </div>
+    );
 
   return (
     <section id="careers" className="flex flex-col items-center bg-white py-20">
       <div
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-14"
+        className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-14"
         style={{ paddingTop: "100px" }}
       >
         <img
-          src={post.image}
+          src={post.imageBase64}
           alt={post.title}
-          className="w-full h-64 object-cover rounded-xl mb-6 bg-gray-100"
+          className="w-full h-96 object-cover rounded-xl mb-6 bg-gray-200"
         />
         <h1 className="text-3xl font-bold text-secondary-blue mb-4">
           {post.title}
@@ -95,7 +99,7 @@ export default function BlogDetails() {
         <p className="text-sm text-gray-500 mb-6">{post.date}</p>
         <div
           className="prose max-w-none mb-8"
-          dangerouslySetInnerHTML={{ __html: post.content }}
+          dangerouslySetInnerHTML={{ __html: post.body }}
         />
         <div className="flex justify-between text-sm text-gray-600 mb-8">
           <button onClick={handleReaction} className="flex items-center">
@@ -121,7 +125,7 @@ export default function BlogDetails() {
         </div>
 
         {/* Comment Section */}
-        <div className="border-t pt-4">
+        <div className="border-t pt-4 w-full">
           <h3 className="text-lg font-semibold text-secondary-blue mb-2">
             Leave a Comment
           </h3>
@@ -148,7 +152,7 @@ export default function BlogDetails() {
                   className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300"
                 >
                   <img
-                    src={rp.image}
+                    src={rp.imageBase64}
                     alt={rp.title}
                     className="w-full h-40 object-cover rounded-t-lg"
                   />
