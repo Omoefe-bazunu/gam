@@ -15,22 +15,22 @@ const ProjectCard = ({ image, mainText, subText }) => (
 const WhyChooseUs = () => {
   const projects = [
     {
-      image: "/services/businessstrategy.png",
+      image: "/whychooseus/global.png",
       mainText: "Global Perspective",
       subText: "U.S. incorporated, serving businesses worldwide.",
     },
     {
-      image: "/services/consulting.png",
+      image: "/whychooseus/innovation.jpg",
       mainText: "Innovation-Driven",
       subText: "We craft solutions tailored to your unique needs.",
     },
     {
-      image: "/services/fureready.png",
+      image: "/whychooseus/trusted.jpg",
       mainText: "Trusted by Businesses",
       subText: "Proven expertise across industries.",
     },
     {
-      image: "/services/websolutions.png",
+      image: "/whychooseus/partnership.jpg",
       mainText: "Partnership Approach",
       subText: "We don’t just consult — we collaborate.",
     },

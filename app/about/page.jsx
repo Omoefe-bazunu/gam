@@ -59,7 +59,7 @@ export default function AboutUs() {
     },
   ];
 
-  const featuredImage = "/services/consulting.png";
+  const featuredImage = "/about/aboutus.jpg";
 
   useEffect(() => {
     const fetchTeamMembers = async () => {
@@ -298,7 +298,7 @@ export default function AboutUs() {
           <div
             className="w-full max-w-2xl h-96 mt-8 mx-auto rounded-xl shadow-lg"
             style={{
-              backgroundImage: "url(/services/businessstrategy.png)",
+              backgroundImage: "url(/about/ourapproach.jpg)",
               backgroundPosition: "center",
               backgroundSize: "cover",
               backgroundRepeat: "no-repeat",
@@ -324,7 +324,7 @@ export default function AboutUs() {
             )}
           </div>
           <div className="relative">
-            <div className="flex overflow-hidden flex-col md:flex-row">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {displayedMembers.map((member) => (
                 <motion.div
                   key={member.id}
@@ -333,6 +333,8 @@ export default function AboutUs() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.5 }}
                 >
+                  {" "}
+                  {/* Removed min-w-[33.33%] and p-4 from here as grid handles spacing */}
                   <div
                     className="bg-white text-secondary-blue hover:scale-105 hover:bg-primary-blue hover:text-white px-4 py-6 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
                     style={{ borderRadius: "12px" }}
@@ -370,10 +372,12 @@ export default function AboutUs() {
                         </a>
                       </div>
                     </div>
-                    <div className="p-6 text-left">
+                    <div className="p-6 text-center">
                       <h3 className="text-lg font-semibold">{member.name}</h3>
-                      <p className="text-sm">{member.role}</p>
-                      <p className="text-xs text-gray-500 max-w-xs whitespace-normal break-words">
+                      <p className="text-sm font-semibold font-secondary">
+                        {member.role}
+                      </p>
+                      <p className="text-xs font-secondary text-gray-500 max-w-xs whitespace-normal break-words">
                         {member.bio}
                       </p>
                     </div>
@@ -463,12 +467,12 @@ export default function AboutUs() {
                   onChange={(e) =>
                     setNewMember({ ...newMember, bio: e.target.value })
                   }
-                  maxLength={400}
+                  maxLength={200}
                   className="mt-1 p-2 w-full border border-gray-300 rounded h-20"
                   placeholder="Brief bio (max 400 characters)"
                 />
                 <p className="text-xs text-gray-500">
-                  {newMember.bio.length}/400 characters
+                  {newMember.bio.length}/200 characters
                 </p>
               </div>
               <div className="mb-4">

@@ -40,19 +40,19 @@ export default function AdminDashboard() {
     { id: "volunteers", label: "Volunteers" },
     { id: "blogPosts", label: "Blog Posts" },
     { id: "cvs", label: "CV Submissions" },
+    { id: "messages", label: "Messages" },
+    { id: "newsletters", label: "News Letters" },
   ];
 
   useEffect(() => {
     if (!authLoading && !isUserAdmin) {
-      // Redirect or show access denied if not admin after auth loading
-      // For now, we'll just return null from the component
       return;
     }
 
     const fetchData = async () => {
       setLoading(true);
       try {
-        const collections = tabs.map((tab) => tab.id); // Use tabs array for collections
+        const collections = tabs.map((tab) => tab.id);
         const fetchedData = {};
         for (const col of collections) {
           const querySnapshot = await getDocs(collection(db, col));
@@ -60,19 +60,21 @@ export default function AdminDashboard() {
             id: doc.id,
             ...doc.data(),
           }));
+          console.log(`Fetched ${col}:`, fetchedData[col]); // Debug log
         }
         setData(fetchedData);
       } catch (error) {
-        setError("Failed to fetch data");
+        console.error("Error fetching data:", error); // Debug error
+        setError("Failed to fetch data: " + error.message);
       }
       setLoading(false);
     };
 
     if (isUserAdmin) {
-      // Only fetch data if user is admin
       fetchData();
     }
-  }, [authLoading, isUserAdmin]); // Depend on authLoading and isUserAdmin
+  }, [authLoading, isUserAdmin]);
+
   const handleEdit = (item, tab) => {
     setCurrentItem({ ...item, tab });
     setEditModalOpen(true);
@@ -87,14 +89,15 @@ export default function AdminDashboard() {
           [tab]: prev[tab].filter((item) => item.id !== itemId),
         }));
       } catch (error) {
-        setError("Failed to delete item");
+        console.error("Error deleting item:", error);
+        setError("Failed to delete item: " + error.message);
       }
     }
   };
 
   const handleAdd = (tab) => {
     setNewItem(tab);
-    setFormData({}); // Clear formData for new item
+    setFormData({});
     setAddModalOpen(true);
   };
 
@@ -109,7 +112,7 @@ export default function AdminDashboard() {
             item.id === currentItem.id ? { ...item, ...updatedItem } : item
           ),
         }));
-        setFormData({}); // Clear form data after saving
+        setFormData({});
         setEditModalOpen(false);
         setCurrentItem(null);
       } else if (newItem) {
@@ -122,11 +125,12 @@ export default function AdminDashboard() {
           [newItem]: [...prev[newItem], { id: docRef.id, ...updatedItem }],
         }));
         setAddModalOpen(false);
-        setFormData({}); // Clear form data after saving
+        setFormData({});
         setNewItem(null);
       }
     } catch (error) {
-      setError("Failed to save item");
+      console.error("Error saving item:", error);
+      setError("Failed to save item: " + error.message);
     }
     setLoading(false);
   };
@@ -139,7 +143,6 @@ export default function AdminDashboard() {
     );
   }
 
-  // Show loading spinner if auth is still loading or data is being fetched
   if (loading)
     return (
       <section className="flex flex-col items-center justify-center min-h-screen bg-white py-20">
@@ -149,7 +152,6 @@ export default function AdminDashboard() {
             <span className="h-3 w-3 bg-primary-blue rounded-full animate-pulse delay-200"></span>
             <span className="h-3 w-3 bg-primary-blue rounded-full animate-pulse delay-400"></span>
           </div>
-          {/* <p className="mt-6 text-lg text-gray-700">Loading services...</p> */}
         </div>
       </section>
     );
@@ -157,82 +159,88 @@ export default function AdminDashboard() {
   return (
     <section
       id="services"
-      className="flex flex-col items-center bg-white pt-20"
+      className="flex flex-col items-center bg-white min-h-screen py-20"
     >
-      <div
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-14"
-        style={{ paddingTop: "100px" }}
-      >
-        <header className="bg-white shadow p-4">
+      <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8 pt-28">
+        <header className="bg-white shadow p-4 mb-6">
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
         </header>
-        <div className="p-6">
-          <div className="tabs mb-6 items-center justify-center flex space-x-4 gap-4 flex-wrap">
+        <div className="mb-6">
+          <div className="tabs flex flex-wrap gap-2 justify-center">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`mr-2 px-4 py-2 rounded ${
+                className={`px-4 py-2 text-sm rounded ${
                   activeTab === tab.id
                     ? "bg-blue-500 text-white"
-                    : "bg-gray-200"
-                }`}
+                    : "bg-gray-200 text-gray-700"
+                } hover:bg-gray-300 transition-colors`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
-                {tabs.find((t) => t.id === activeTab)?.label}
-              </h2>
-              <button
-                onClick={() => handleAdd(activeTab)}
-                className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-              >
-                <FaPlus />
-              </button>
-            </div>
-            <div className="overflow-x-auto">
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">
+              {tabs.find((t) => t.id === activeTab)?.label}
+            </h2>
+            <button
+              onClick={() => handleAdd(activeTab)}
+              className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 flex items-center gap-2"
+            >
+              <FaPlus /> Add
+            </button>
+          </div>
+          <div className="overflow-x-auto font-secondary">
+            <div className="min-w-[600px]">
               <table className="w-full">
                 <thead>
                   <tr className="bg-gray-50">
                     <th className="px-4 py-2 text-left">Title/Name</th>
                     <th className="px-4 py-2 text-left">Description/Role</th>
+                    <th className="px-4 py-2 text-left">Email</th>
                     <th className="px-4 py-2 text-left">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data[activeTab]?.map((item) => (
-                    <tr key={item.id} className="border-b">
-                      <td className="px-4 py-2">
-                        {item.title || item.name || item.challenge || item.name}
-                      </td>
-                      <td className="px-4 py-2">
-                        {item.description ||
-                          item.role ||
-                          item.solution ||
-                          item.name}
-                      </td>
-                      <td className="px-4 py-2">
-                        <button
-                          onClick={() => handleEdit(item, activeTab)}
-                          className="mr-2 text-blue-500 hover:text-blue-700"
-                        >
-                          <FaEdit />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id, activeTab)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <FaTrash />
-                        </button>
-                      </td>
-                    </tr>
-                  )) || (
+                  {data[activeTab]?.length > 0 ? (
+                    data[activeTab].map((item) => (
+                      <tr key={item.id} className="border-b">
+                        <td className="px-4 py-2">
+                          {item.title ||
+                            item.name ||
+                            item.challenge ||
+                            item.name}
+                        </td>
+                        <td className="px-4 py-2">
+                          {item.description ||
+                            item.role ||
+                            item.body ||
+                            item.message}
+                        </td>
+                        <td className="px-4 py-2">{item.email}</td>
+                        <td className="px-4 py-2 flex gap-2">
+                          <button
+                            onClick={() => handleEdit(item, activeTab)}
+                            className="text-blue-500 hover:text-blue-700"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id, activeTab)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            <FaTrash />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
                     <tr>
-                      <td colSpan="3" className="px-4 py-2 text-center">
+                      <td colSpan="4" className="px-4 py-2 text-center">
                         No data
                       </td>
                     </tr>
@@ -241,73 +249,73 @@ export default function AdminDashboard() {
               </table>
             </div>
           </div>
+          {error && <p className="text-red-500 mt-4">{error}</p>}
         </div>
-
-        {editModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h3 className="text-xl font-semibold mb-4">Edit {activeTab}</h3>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSave({ ...currentItem, ...formData });
-                }}
-              >
-                {/* Dynamic form fields based on activeTab */}
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">
-                    Title/Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title || formData.name || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        title: e.target.value,
-                        name: e.target.value,
-                      })
-                    }
-                    className="mt-1 p-2 w-full border rounded"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium">
-                    Description/Role
-                  </label>
-                  <textarea
-                    value={formData.description || formData.role || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        description: e.target.value,
-                        role: e.target.value,
-                      })
-                    }
-                    className="mt-1 p-2 w-full border rounded h-20"
-                  />
-                </div>
-                <div className="flex justify-end gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setEditModalOpen(false)}
-                    // onClick={() => { setEditModalOpen(false); setFormData({}); }} // Clear form data on cancel
-                    className="bg-gray-300 px-4 py-2 rounded"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="bg-blue-500 text-white px-4 py-2 rounded"
-                  >
-                    Save
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
       </div>
+
+      {editModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-semibold mb-4">Edit {activeTab}</h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSave({ ...currentItem, ...formData });
+              }}
+            >
+              <div className="mb-4">
+                <label className="block text-sm font-medium">Title/Name</label>
+                <input
+                  type="text"
+                  value={formData.title || formData.name || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      title: e.target.value,
+                      name: e.target.value,
+                    })
+                  }
+                  className="mt-1 p-2 w-full border rounded"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium">
+                  Description/Role
+                </label>
+                <textarea
+                  value={formData.description || formData.role || ""}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      description: e.target.value,
+                      role: e.target.value,
+                    })
+                  }
+                  className="mt-1 p-2 w-full border rounded h-20"
+                />
+              </div>
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditModalOpen(false);
+                    setFormData({});
+                  }}
+                  className="bg-gray-300 px-4 py-2 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-4 py-2 rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

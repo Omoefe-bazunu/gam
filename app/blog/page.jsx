@@ -228,7 +228,7 @@ export default function Blog() {
               Add Blog Post
             </h3>
             <form onSubmit={handleSavePost}>
-              <div className="mb-4">
+              <div className="mb-4 font-secondary">
                 <label className="block text-sm font-medium text-gray-700">
                   Title
                 </label>
@@ -242,7 +242,7 @@ export default function Blog() {
                   required
                 />
               </div>
-              <div className="mb-4">
+              <div className="mb-4 font-secondary">
                 <label className="block text-sm font-medium text-gray-700">
                   Excerpt
                 </label>
@@ -255,7 +255,7 @@ export default function Blog() {
                   required
                 />
               </div>
-              <div className="mb-4">
+              <div className="mb-4 font-secondary">
                 <label className="block text-sm font-medium text-gray-700">
                   Body
                 </label>

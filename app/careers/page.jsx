@@ -54,17 +54,14 @@ export default function CareerPage() {
 
   const [submissionStatus, setSubmissionStatus] = useState(null); // 'success' or 'error'
 
-  // Check if current user is admin
+  // Check if current user is admin using email-based check instead of separate admin collection
   useEffect(() => {
-    const checkAdminStatus = async () => {
+    const checkAdminStatus = () => {
       if (user && !authLoading) {
-        try {
-          const adminDoc = await getDoc(doc(db, "admins", user.uid));
-          setIsUserAdmin(adminDoc.exists());
-        } catch (err) {
-          console.error("Error checking admin status:", err);
-          setIsUserAdmin(false);
-        }
+        const adminEmails = process.env.NEXT_PUBLIC_ADMIN
+          ? process.env.NEXT_PUBLIC_ADMIN.split(",")
+          : [];
+        setIsUserAdmin(adminEmails.includes(user.email));
       } else {
         setIsUserAdmin(false);
       }
@@ -423,53 +420,59 @@ export default function CareerPage() {
           our passion for innovation and excellence.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-          {jobOpenings.slice(0, visibleJobs).map((job) => (
-            <div
-              key={job.id}
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border border-gray-100"
-            >
-              <h3 className="text-xl font-semibold text-secondary-blue mb-2">
-                {job.title}
-              </h3>
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>Location:</strong> {job.location}
-              </p>
-              <p className="text-sm text-gray-600 mb-2">
-                <strong>Type:</strong> {job.type}
-              </p>
-              <p className="text-sm text-gray-600 font-secondary mb-4">
-                {job.description}
-              </p>
-              <button
-                onClick={() => toggleExpand(job.id)}
-                className="text-orange-500 hover:text-orange-600 font-medium"
+          {jobOpenings ? (
+            jobOpenings.slice(0, visibleJobs).map((job) => (
+              <div
+                key={job.id}
+                className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 border border-gray-100"
               >
-                {expandedJob === job.id ? "Hide Details" : "Show Details"}
-              </button>
-              {expandedJob === job.id && (
-                <div className="mt-4">
-                  <div className="text-sm text-gray-600 mb-2">
-                    <strong>Full Description:</strong>
-                    <div className="font-secondary mt-1">
-                      {formatText(job.fullDescription)}
+                <h3 className="text-xl font-semibold text-secondary-blue mb-2">
+                  {job.title}
+                </h3>
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>Location:</strong> {job.location}
+                </p>
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>Type:</strong> {job.type}
+                </p>
+                <p className="text-sm text-gray-600 font-secondary mb-4">
+                  {job.description}
+                </p>
+                <button
+                  onClick={() => toggleExpand(job.id)}
+                  className="text-orange-500 hover:text-orange-600 font-medium"
+                >
+                  {expandedJob === job.id ? "Hide Details" : "Show Details"}
+                </button>
+                {expandedJob === job.id && (
+                  <div className="mt-4">
+                    <div className="text-sm text-gray-600 mb-2">
+                      <strong>Full Description:</strong>
+                      <div className="font-secondary mt-1 max-h-48 overflow-y-auto">
+                        {formatText(job.fullDescription)}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-sm text-gray-600 mb-2">
-                    <strong>Requirements:</strong>
-                    <div className="font-secondary mt-1">
-                      {formatText(job.requirements)}
+                    <div className="text-sm text-gray-600 mb-2">
+                      <strong>Requirements:</strong>
+                      <div className="font-secondary mt-1 max-h-48 overflow-y-auto">
+                        {formatText(job.requirements)}
+                      </div>
                     </div>
+                    <button
+                      onClick={() => setModalOpen(true)}
+                      className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                    >
+                      Apply Now
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setModalOpen(true)}
-                    className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
-                  >
-                    Apply Now
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            ))
+          ) : (
+            <p className=" text-center flex mx-auto w-full text-primary-blue">
+              No Current Job Openings
+            </p>
+          )}
         </div>
         {visibleJobs < jobOpenings.length && (
           <div className="text-center mt-8">

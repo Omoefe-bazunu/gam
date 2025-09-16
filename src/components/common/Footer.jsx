@@ -9,7 +9,7 @@ export default function Footer() {
         <div className="mb-8 lg:mb-0 flex flex-col items-center ">
           <h2 className="text-4xl font-bold mb-4">Got a project?</h2>
           <p className="flex items-center gap-2 mb-2">
-            <HiOutlinePhone className="text-xl" /> (234) 818 099 0586
+            <HiOutlinePhone className="text-xl" /> +1 (721) 405-2335
           </p>
           <p className="flex items-center gap-2">
             <HiOutlineMail className="text-xl" /> info@gambrillspartners.com
@@ -23,7 +23,9 @@ export default function Footer() {
       {/* Bottom Section */}
       <div className="max-w-7xl mx-auto px-6 lg:px-20 py-6 flex flex-col lg:flex-row items-center justify-between text-sm">
         {/* Address */}
-        <p className="mb-4 lg:mb-0">629 Elgin St.Celina, 2202</p>
+        <p className="mb-4 lg:mb-0">
+          30 N Gould St, Ste N, Sheridan, WY 82801, USA
+        </p>
 
         {/* Social Icons */}
         <div className="flex space-x-6 mb-4 lg:mb-0">
