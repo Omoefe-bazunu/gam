@@ -59,7 +59,7 @@ const Newsletter = () => {
           disabled={loading}
           className="bg-orange-500 text-lg text-white py-2 px-4 rounded-r-lg hover:bg-[#00042f] hover:text-white transition-colors disabled:opacity-50"
         >
-          {loading ? "Subscribing..." : "Subscribe"}
+          {loading ? "Subscribing..." : "Subscribe to our Newsletter"}
         </button>
       </form>
 

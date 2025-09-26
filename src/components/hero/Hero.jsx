@@ -4,7 +4,7 @@ import { MdArrowOutward, MdMenu, MdClose } from "react-icons/md";
 const HeroSection = () => {
   return (
     <section
-      className="relative min-h-screen pt-44 pb-16 overflow-hidden"
+      className="relative min-h-screen pt-40 pb-16 overflow-hidden"
       style={{
         backgroundImage: 'url("/herobg.jpg")',
         backgroundSize: "cover",
@@ -36,7 +36,10 @@ const HeroSection = () => {
           {/* Left Content */}
           <div className="text-white space-y-8">
             <div className="space-y-6">
-              <h1 className="font-primary text-3xl sm:text-5xl lg:text-5xl font-bold leading-[1.3]">
+              <h1
+                className="font-primary text-3xl sm:text-5xl lg:text-5xl font-bold leading-[1.3]"
+                style={{ lineHeight: "1.1" }}
+              >
                 Transforming
                 <br />
                 <span className="text-emerald-300"> Businesses </span>
@@ -50,6 +53,12 @@ const HeroSection = () => {
                 With expertise in consulting, process engineering, and bespoke
                 technology solutions, we deliver measurable impact that helps
                 you thrive in an ever-changing world.
+              </p>
+              <p className="font-secondary font-light text-sm sm:text-lg text-emerald-100 max-w-xl">
+                Headquartered in Wyoming, USA, we operate a remote-first, global
+                team of consultants, engineers, and strategists across North
+                America, Africa, and Europe—bringing together the creativity and
+                cultural insight of international talent.
               </p>
             </div>
 
@@ -101,7 +110,7 @@ const HeroSection = () => {
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-gray-800">
-                      120+ Expertise
+                      Strategic Leadership
                     </div>
                   </div>
                 </div>
@@ -109,7 +118,7 @@ const HeroSection = () => {
             </div>
 
             <div className="absolute -bottom-5 -right-2 sm:-right-4 z-30 animate-heartbeat">
-              <div className="bg-white rounded-2xl p-6 shadow-2xl border border-emerald-100">
+              <div className="bg-white rounded-2xl px-6 py-2 shadow-2xl border border-emerald-100">
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
                     <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
@@ -123,8 +132,7 @@ const HeroSection = () => {
                     </div>
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-gray-800">99%</div>
-                    <div className="text-sm text-gray-600">Success Rate</div>
+                    <div className="text-sm text-gray-600">Value Creation</div>
                   </div>
                 </div>
               </div>

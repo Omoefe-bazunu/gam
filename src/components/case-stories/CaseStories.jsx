@@ -39,9 +39,21 @@ const Casestories = () => {
   );
 
   const features = [
-    "Professional Team Members",
-    "Any Business Problem Solving",
-    "Implement Business Pro",
+    {
+      id: 1,
+      main: "Expert minds, human approach",
+      sub: "A professional team with diverse expertise.",
+    },
+    {
+      id: 2,
+      main: "Solutions that fit",
+      sub: "Tailored problem-solving for businesses of any size.",
+    },
+    {
+      id: 3,
+      main: "Beyond advice",
+      sub: "We don’t just recommend; we implement.",
+    },
   ];
 
   return (
@@ -78,7 +90,7 @@ const Casestories = () => {
                   <span>and so do we</span>
                 </h1>
 
-                <p className=" text-gray-600 font-secondary text-sm font-light leading-relaxed max-w-lg">
+                <p className="text-gray-700 font-light text-lg font-secondary leading-relaxed max-w-lg">
                   Gambrills Partners was founded on the belief that every
                   challenge holds an opportunity. Our mission is to help
                   organizations harness technology, optimize operations, and
@@ -98,15 +110,18 @@ const Casestories = () => {
                     }`}
                     style={{ transitionDelay: `${(index + 1) * 200}ms` }}
                   >
-                    <div className="w-6 h-6 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                      <Check className="w-3 h-3 text-white" />
+                    <div
+                      className="flex flex-col font-secondary spaace-y-2"
+                      key={index}
+                    >
+                      <p className="text-gray-700 text-lg font-primary font-medium">
+                        {feature.main}
+                      </p>
+                      <p className="text-gray-700 text-sm">{feature.sub}</p>
                     </div>
-                    <span className="text-gray-700 text-lg font-medium">
-                      {feature}
-                    </span>
                   </div>
                 ))}
-                <div className="flex space-x-3 mt-10 lg:mt-0">
+                <div className="space-x-3 mt-10 lg:mt-0 hidden">
                   <div className="w-12 h-12 rounded-full overflow-hidden border-3 border-white shadow-lg">
                     <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center">
                       <span className="text-gray-600 font-semibold text-sm">
@@ -169,18 +184,16 @@ const Casestories = () => {
 
                   {/* Floating Success Metrics */}
                   <div className="absolute -top-6 -left-6 bg-white rounded-2xl shadow-xl p-4 animate-float">
-                    <div className="text-2xl font-bold text-orange-500">
-                      10+
+                    <div className="text-sm text-gray-600">
+                      Globally Trusted
                     </div>
-                    <div className="text-sm text-gray-600">Years Exp</div>
                   </div>
 
                   <div
                     className="absolute -bottom-4 -right-4 bg-primary-blue text-white rounded-2xl shadow-xl p-4 animate-float"
                     style={{ animationDelay: "1s" }}
                   >
-                    <div className="text-2xl font-bold">50+</div>
-                    <div className="text-sm opacity-90">Projects</div>
+                    <div className="text-sm opacity-90">Result driven</div>
                   </div>
                 </div>
 

@@ -7,7 +7,7 @@ const ProjectCard = ({ image, mainText, subText }) => (
       alt={mainText}
       className="w-full h-64 object-cover rounded-lg"
     />
-    <h3 className="mt-2 text-lg font-bold font-primar">{mainText}</h3>
+    <h3 className="mt-2 text-sm font-bold font-primary">{mainText}</h3>
     <p className="text-sm font-secondary font-light">{subText}</p>
   </div>
 );
@@ -19,11 +19,7 @@ const WhyChooseUs = () => {
       mainText: "Global Perspective",
       subText: "U.S. incorporated, serving businesses worldwide.",
     },
-    {
-      image: "/whychooseus/innovation.jpg",
-      mainText: "Innovation-Driven",
-      subText: "We craft solutions tailored to your unique needs.",
-    },
+
     {
       image: "/whychooseus/trusted.jpg",
       mainText: "Trusted by Businesses",
@@ -33,6 +29,11 @@ const WhyChooseUs = () => {
       image: "/whychooseus/partnership.jpg",
       mainText: "Partnership Approach",
       subText: "We don’t just consult — we collaborate.",
+    },
+    {
+      image: "/whychooseus/innovation.jpg",
+      mainText: "Innovation-Driven",
+      subText: "We craft solutions tailored to your unique needs.",
     },
   ];
 

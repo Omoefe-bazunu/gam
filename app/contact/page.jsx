@@ -129,7 +129,7 @@ const ContactUs = () => {
                 d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
               />
             </svg>
-            <h3 className="mt-2 text-lg font-semibold">Addresses</h3>
+            <h3 className="mt-2 text-lg font-semibold">Address</h3>
             <p className="mt-1 text-sm">
               30 N Gould St, Ste N, Sheridan, WY 82801, USA
             </p>
@@ -139,15 +139,15 @@ const ContactUs = () => {
           <div className="text-lg flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
             <p>Social Media:</p>
             <div>
-              <a href="#" className="hover:text-orange-500">
+              <a href="#" className="hover:text-orange-500 mr-2">
                 LinkedIn
               </a>
               |
-              <a href="#" className="hover:text-orange-500">
+              <a href="#" className="hover:text-orange-500 mx-2">
                 X
               </a>
               |
-              <a href="#" className="hover:text-orange-500">
+              <a href="#" className="hover:text-orange-500 ml-2">
                 Instagram
               </a>
             </div>

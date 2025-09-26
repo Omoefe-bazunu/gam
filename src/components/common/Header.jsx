@@ -1,26 +1,19 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import {
-  MdArrowOutward,
-  MdMenu,
-  MdClose,
-  MdKeyboardArrowDown,
-} from "react-icons/md";
+import { MdArrowOutward, MdMenu, MdClose } from "react-icons/md";
 import { useAuth } from "@/src/contexts/AuthContext";
+import Link from "next/link";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isServicesOpen, setIsServicesOpen] = useState(false);
-  const [isMobileServicesOpen, setIsMobileServicesOpen] = useState(false);
 
-  const { user, logout } = useAuth(); // get auth state + actions
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -30,17 +23,28 @@ const Header = () => {
       <div className="bg-primary-blue">
         <div className="wrapper max-w-6xl mx-auto font-secondary text-white text-sm p-4 flex justify-between">
           <p className="ml-4">Welcome to Gambrills</p>
-          <p className="mr-4">
-            {!user ? (
-              <a href="/auth/login" className="hover:text-orange-500 mr-4">
-                LOGIN
-              </a>
-            ) : (
-              <button onClick={logout} className="hover:text-orange-500 ml-4">
-                LOGOUT
-              </button>
-            )}
-          </p>
+          <div className="flex gap items-center">
+            <p className="mr-4">
+              {!user ? (
+                <a href="/auth/login" className="hover:text-orange-500 mr-4">
+                  LOGIN
+                </a>
+              ) : (
+                <button onClick={logout} className="hover:text-orange-500 ml-4">
+                  LOGOUT
+                </button>
+              )}
+            </p>
+            <span className="border-l-2 border-white pl-4 inline-block">
+              {!user ? (
+                <a href="/auth/signup" className="hover:text-orange-500 mr-4">
+                  SIGN UP
+                </a>
+              ) : (
+                <span></span>
+              )}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -49,7 +53,7 @@ const Header = () => {
           isScrolled ? "py-4" : "py-6"
         }`}
       >
-        <div className="flex items-center">
+        <Link href={"/"} className="flex items-center">
           <img
             src="/logoBlue.webp"
             alt="Gambrills Logo"
@@ -57,10 +61,10 @@ const Header = () => {
               isScrolled ? "h-6" : "h-8"
             }`}
           />
-        </div>
+        </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex space-x-4 relative">
+        <nav className="hidden md:flex space-x-4 relative text-sm">
           <a href="/" className="hover:text-orange-500">
             Home
           </a>
@@ -68,31 +72,15 @@ const Header = () => {
             About Us
           </a>
 
-          {/* Services Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setIsServicesOpen(!isServicesOpen)}
-              className="flex items-center hover:text-orange-500 focus:outline-none"
-            >
-              Services <MdKeyboardArrowDown className="ml-1" />
-            </button>
-            {isServicesOpen && (
-              <div className="absolute top-full left-0 mt-2 bg-white shadow-lg rounded-md w-40">
-                <a
-                  href="/services"
-                  className="block px-4 py-2 hover:bg-gray-100 text-primary-blue"
-                >
-                  General
-                </a>
-                <a
-                  href="/case-stories"
-                  className="block px-4 py-2 hover:bg-gray-100 text-primary-blue"
-                >
-                  Case Stories
-                </a>
-              </div>
-            )}
-          </div>
+          {/* Services as simple link */}
+          <a href="/services" className="hover:text-orange-500">
+            Services
+          </a>
+
+          {/* Case Stories as main link */}
+          <a href="/case-stories" className="hover:text-orange-500">
+            Case Stories
+          </a>
 
           <a href="/blog" className="hover:text-orange-500">
             Blog
@@ -134,33 +122,15 @@ const Header = () => {
                 About Us
               </a>
 
-              {/* Mobile Services Dropdown */}
-              <div>
-                <button
-                  onClick={() => setIsMobileServicesOpen(!isMobileServicesOpen)}
-                  className="flex items-center justify-between w-full hover:text-orange-500 py-2"
-                >
-                  <span>Services</span>
-                  <MdKeyboardArrowDown
-                    className={`ml-2 transform transition-transform ${
-                      isMobileServicesOpen ? "rotate-180" : ""
-                    }`}
-                  />
-                </button>
-                {isMobileServicesOpen && (
-                  <div className="pl-4 flex flex-col">
-                    <a href="/services" className="hover:text-orange-500 py-2">
-                      General
-                    </a>
-                    <a
-                      href="/case-stories"
-                      className="hover:text-orange-500 py-2"
-                    >
-                      Case Stories
-                    </a>
-                  </div>
-                )}
-              </div>
+              {/* Services as simple link */}
+              <a href="/services" className="hover:text-orange-500 py-2">
+                Services
+              </a>
+
+              {/* Case Stories as main link */}
+              <a href="/case-stories" className="hover:text-orange-500 py-2">
+                Case Stories
+              </a>
 
               <a href="/blog" className="hover:text-orange-500 py-2">
                 Blog

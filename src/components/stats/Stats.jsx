@@ -38,7 +38,7 @@ export default function StatsSection() {
             };
 
             animateCount(setHappyClients, 2000, 2000);
-            animateCount(setProjectsCompleted, 50, 2000);
+            animateCount(setProjectsCompleted, 500, 2000);
             animateCount(setAverageRating, 4.9, 2000, true);
             animateCount(setGrowthRate, 1.2, 2000, true);
             observer.disconnect(); // Stop observing once animation starts
@@ -61,30 +61,33 @@ export default function StatsSection() {
 
   return (
     <section ref={sectionRef} className="py-16 font-primary bg-orange-500">
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-14">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-white">
-          <div className="text-center">
-            <h3 className="text-3xl md:text-4xl font-bold ">{happyClients}+</h3>
-            <p className=" mt-2 text-sm">Happy Clients</p>
+      <div className="container flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-14">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-16 mx-auto text-white ">
+          <div className="flex items-center">
+            <h3 className="text-3xl md:text-4xl font-bold border-r-2 border-white pr-4 mr-4">
+              {happyClients}+
+            </h3>
+            <p className="text-sm font-light">
+              Happy <br /> Clients
+            </p>
           </div>
 
-          <div className="text-center">
-            <h3 className="text-3xl md:text-4xl font-bold ">
+          <div className="flex items-center">
+            <h3 className="text-3xl md:text-4xl font-bold border-r-2 border-white pr-4 mr-4">
               {projectsCompleted}+
             </h3>
-            <p className=" mt-2 text-sm">Projects Completed</p>
+            <p className="text-sm font-light">
+              Projects <br /> Completed
+            </p>
           </div>
 
-          <div className="text-center">
-            <h3 className="text-3xl md:text-4xl font-bold ">
+          <div className="flex items-center">
+            <h3 className="text-3xl md:text-4xl font-bold border-r-2 border-white pr-4 mr-4">
               {averageRating}+
             </h3>
-            <p className=" mt-2 text-sm">Average Rating</p>
-          </div>
-
-          <div className="text-center">
-            <h3 className="text-3xl md:text-4xl font-bold ">{growthRate}%</h3>
-            <p className=" mt-2 text-sm">Growth Rate</p>
+            <p className="text-sm font-light">
+              Average <br /> Rating
+            </p>
           </div>
         </div>
       </div>

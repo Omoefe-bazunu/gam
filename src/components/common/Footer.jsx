@@ -1,4 +1,4 @@
-import { FaFacebookF, FaTwitter, FaInstagram } from "react-icons/fa";
+import { FaFacebookF, FaLinkedin, FaInstagram } from "react-icons/fa";
 import { HiOutlineMail, HiOutlinePhone } from "react-icons/hi";
 
 export default function Footer() {
@@ -29,13 +29,25 @@ export default function Footer() {
 
         {/* Social Icons */}
         <div className="flex space-x-6 mb-4 lg:mb-0">
-          <a href="#" className="hover:text-orange-500">
+          <a
+            href="https://www.facebook.com/share/17HGYDTTud/?mibextid=wwXIfr"
+            target="_blank"
+            className="hover:text-orange-500"
+          >
             <FaFacebookF />
           </a>
-          <a href="#" className="hover:text-orange-500">
-            <FaTwitter />
+          <a
+            href="https://www.linkedin.com/company/gambrills-partners/?viewAsMember=true"
+            target="_blank"
+            className="hover:text-orange-500"
+          >
+            <FaLinkedin />
           </a>
-          <a href="#" className="hover:text-orange-500">
+          <a
+            href="https://www.instagram.com/gambrillspartners?igsh=bXc1NTA5NTR0dTVo&utm_source=qr"
+            target="_blank"
+            className="hover:text-orange-500"
+          >
             <FaInstagram />
           </a>
         </div>

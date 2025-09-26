@@ -6,6 +6,9 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth } from "@/src/utils/firebase";
 import { useRouter } from "next/navigation";
@@ -26,6 +29,7 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []);
 
+  // --- Google Sign-in ---
   const googleSignIn = async () => {
     const provider = new GoogleAuthProvider();
     try {
@@ -36,9 +40,43 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
+  // --- Email/Password Signup ---
+  const signup = async (email, password) => {
     try {
-      signOut(auth);
+      await createUserWithEmailAndPassword(auth, email, password);
+      router.push("/");
+    } catch (error) {
+      console.error("Signup failed:", error);
+      throw error;
+    }
+  };
+
+  // --- Email/Password Login ---
+  const login = async (email, password) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push("/");
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    }
+  };
+
+  // --- Password Reset ---
+  const resetPassword = async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      alert("Password reset email sent!");
+    } catch (error) {
+      console.error("Password reset failed:", error);
+      throw error;
+    }
+  };
+
+  // --- Logout ---
+  const logout = async () => {
+    try {
+      await signOut(auth);
       router.push("/");
     } catch (error) {
       console.error("Logout failed:", error);
@@ -46,7 +84,17 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, googleSignIn, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        googleSignIn,
+        signup,
+        login,
+        resetPassword,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

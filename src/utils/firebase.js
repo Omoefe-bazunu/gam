@@ -19,7 +19,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 // Firebase services
-const db = getFirestore(app);
+const db = getFirestore(app, "gambrillspartners");
 const storage = getStorage(app);
 const auth = getAuth(app); // 👈 create and export auth instance
 

@@ -1,13 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { FaUsers, FaHandshake, FaBullseye } from "react-icons/fa";
 import {
-  FaArrowLeft,
-  FaArrowRight,
   FaFacebookF,
   FaTwitter,
   FaLinkedinIn,
+  FaSpinner,
 } from "react-icons/fa";
 import {
   collection,
@@ -15,18 +14,19 @@ import {
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { db } from "@/src/utils/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "@/src/utils/firebase";
 import { useAuth } from "@/src/contexts/AuthContext";
 
 export default function AboutUs() {
   const [activeId, setActiveId] = useState(1);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [startIndex, setStartIndex] = useState(0);
   const [teamMembers, setTeamMembers] = useState([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newMember, setNewMember] = useState({
     name: "",
     role: "",
-    imageBase64: "",
+    imageFile: null,
     social: { facebook: "", twitter: "", linkedin: "" },
     bio: "",
   });
@@ -61,37 +61,80 @@ export default function AboutUs() {
 
   const featuredImage = "/about/aboutus.jpg";
 
-  useEffect(() => {
-    const fetchTeamMembers = async () => {
-      try {
-        const querySnapshot = await getDocs(collection(db, "teamMembers"));
-        const fetchedMembers = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setTeamMembers(fetchedMembers);
-      } catch (error) {
-        console.error("Error fetching team members from Firebase:", error);
-      }
-    };
-
-    fetchTeamMembers();
+  const fetchTeamMembers = useCallback(async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "teamMembers"));
+      const fetchedMembers = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTeamMembers(fetchedMembers);
+    } catch (error) {
+      console.error("Error fetching team members from Firebase:", error);
+    }
   }, []);
 
-  const membersPerPage = 3;
-  const totalPages = Math.ceil(teamMembers.length / membersPerPage);
+  useEffect(() => {
+    fetchTeamMembers();
+  }, [fetchTeamMembers]);
 
-  const displayedMembers = teamMembers.slice(
-    currentPage * membersPerPage,
-    (currentPage + 1) * membersPerPage
-  );
+  // ==========================================================
+  // UPDATED AUTOCAROUSEL LOGIC WITH SLIDE ANIMATIONS
+  // ==========================================================
+  const [isMobile, setIsMobile] = useState(false);
 
-  const handleNext = () => {
-    setCurrentPage((prev) => (prev + 1) % totalPages);
-  };
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
 
-  const handlePrevious = () => {
-    setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const membersPerPage = isMobile ? 1 : 3;
+  const totalMembers = teamMembers.length;
+
+  useEffect(() => {
+    if (totalMembers <= membersPerPage) return;
+
+    const intervalId = setInterval(() => {
+      setStartIndex((prevIndex) => (prevIndex + 1) % totalMembers);
+    }, 5000);
+
+    return () => clearInterval(intervalId);
+  }, [totalMembers, membersPerPage]);
+
+  // Get displayed members for current startIndex
+  const displayedMembers = [];
+  for (let i = 0; i < membersPerPage; i++) {
+    if (totalMembers > 0) {
+      const memberIndex = (startIndex + i) % totalMembers;
+      if (teamMembers[memberIndex]) {
+        displayedMembers.push(teamMembers[memberIndex]);
+      }
+    }
+  }
+
+  // Animation variants for slide effects
+  const slideVariants = {
+    enter: (direction) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0,
+      scale: 0.9,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+      scale: 1,
+    },
+    exit: (direction) => ({
+      x: direction > 0 ? -300 : 300,
+      opacity: 0,
+      scale: 0.9,
+    }),
   };
 
   const handleAddMember = () => {
@@ -104,37 +147,44 @@ export default function AboutUs() {
       alert("Bio must be 400 characters or less.");
       return;
     }
+    if (!newMember.imageFile) {
+      alert("Please select an image.");
+      return;
+    }
+
     setLoading(true);
     try {
+      const imageRef = ref(
+        storage,
+        `teamMembers/${Date.now()}-${newMember.imageFile.name}`
+      );
+      await uploadBytes(imageRef, newMember.imageFile);
+      const downloadURL = await getDownloadURL(imageRef);
+
       await addDoc(collection(db, "teamMembers"), {
-        ...newMember,
+        name: newMember.name,
+        role: newMember.role,
+        imageUrl: downloadURL,
+        social: newMember.social,
+        bio: newMember.bio,
         timestamp: serverTimestamp(),
       });
-      const querySnapshot = await getDocs(collection(db, "teamMembers"));
-      setTeamMembers(
-        querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
-      );
+
+      await fetchTeamMembers();
+
       setNewMember({
         name: "",
         role: "",
-        imageBase64: "",
+        imageFile: null,
         social: { facebook: "", twitter: "", linkedin: "" },
         bio: "",
       });
       setAddModalOpen(false);
     } catch (error) {
       console.error("Error adding team member:", error);
+      alert("Failed to add member. Check the console for details.");
     }
     setLoading(false);
-  };
-
-  const convertToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
   };
 
   return (
@@ -245,6 +295,9 @@ export default function AboutUs() {
           </div>
         </div>
       </div>
+
+      {/* --- */}
+
       <div
         className="w-full text-white flex flex-col gap-8 items-center px-4 py-12"
         style={{ backgroundColor: "#010e5a", marginTop: "60px" }}
@@ -281,6 +334,9 @@ export default function AboutUs() {
           </div>
         </div>
       </div>
+
+      {/* --- */}
+
       <div className="w-full h-fit flex flex-col items-center px-4 py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-14 text-center">
           <h2 className="text-2xl font-bold text-secondary-blue text-center">
@@ -307,6 +363,10 @@ export default function AboutUs() {
           ></div>
         </div>
       </div>
+
+      {/* --- */}
+
+      {/* UPDATED TEAM SECTION WITH SLIDE ANIMATIONS */}
       <div className="w-full h-fit flex flex-col items-center px-4 py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-14 text-center">
           <div className="flex flex-col mb-8 items-center">
@@ -323,88 +383,88 @@ export default function AboutUs() {
               </button>
             )}
           </div>
-          <div className="relative">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {displayedMembers.map((member) => (
-                <motion.div
-                  key={member.id}
-                  className="min-w-[33.33%] p-4 flex-shrink-0"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  {" "}
-                  {/* Removed min-w-[33.33%] and p-4 from here as grid handles spacing */}
-                  <div
-                    className="bg-white text-secondary-blue hover:scale-105 hover:bg-primary-blue hover:text-white px-4 py-6 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
-                    style={{ borderRadius: "12px" }}
+
+          <div className="relative overflow-hidden">
+            <div
+              className={`grid ${
+                isMobile ? "grid-cols-1" : "grid-cols-3"
+              } gap-4 min-h-[400px]`}
+            >
+              <AnimatePresence mode="popLayout" initial={false}>
+                {displayedMembers.map((member, idx) => (
+                  <motion.div
+                    key={`${member.id}-${startIndex}-${idx}`}
+                    className="p-4"
+                    custom={idx % 2 === 0 ? 1 : -1} // Alternate direction for staggered effect
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{
+                      x: { type: "spring", stiffness: 300, damping: 30 },
+                      opacity: { duration: 0.4 },
+                      scale: { duration: 0.3 },
+                    }}
+                    layout
                   >
-                    <div className="w-full h-64 overflow-hidden relative group">
-                      <img
-                        src={member.imageBase64}
-                        alt={member.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                      <div className="absolute rounded-lg inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center space-x-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <a
-                          href={member.social.facebook}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-white hover:text-orange-500"
-                        >
-                          <FaFacebookF size={20} />
-                        </a>
-                        <a
-                          href={member.social.twitter}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-white hover:text-orange-500"
-                        >
-                          <FaTwitter size={20} />
-                        </a>
-                        <a
-                          href={member.social.linkedin}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-white hover:text-orange-500"
-                        >
-                          <FaLinkedinIn size={20} />
-                        </a>
+                    <div
+                      className="bg-white text-secondary-blue hover:scale-105 hover:bg-primary-blue hover:text-white px-4 py-6 shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+                      style={{ borderRadius: "12px" }}
+                    >
+                      <div className="w-full h-64 overflow-hidden relative group">
+                        <img
+                          src={member.imageUrl}
+                          alt={member.name}
+                          className="w-full h-full object-cover rounded-lg"
+                        />
+                        <div className="absolute rounded-lg inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center space-x-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <a
+                            href={member.social.facebook}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-white hover:text-orange-500"
+                          >
+                            <FaFacebookF size={20} />
+                          </a>
+                          <a
+                            href={member.social.twitter}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-white hover:text-orange-500"
+                          >
+                            <FaTwitter size={20} />
+                          </a>
+                          <a
+                            href={member.social.linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-white hover:text-orange-500"
+                          >
+                            <FaLinkedinIn size={20} />
+                          </a>
+                        </div>
+                      </div>
+                      <div className="p-6 text-center">
+                        <h3 className="text-lg font-semibold">{member.name}</h3>
+                        <p className="text-sm font-semibold font-secondary">
+                          {member.role}
+                        </p>
+                        <p className="text-xs font-secondary text-gray-500 max-w-xs whitespace-normal break-words">
+                          {member.bio}
+                        </p>
                       </div>
                     </div>
-                    <div className="p-6 text-center">
-                      <h3 className="text-lg font-semibold">{member.name}</h3>
-                      <p className="text-sm font-semibold font-secondary">
-                        {member.role}
-                      </p>
-                      <p className="text-xs font-secondary text-gray-500 max-w-xs whitespace-normal break-words">
-                        {member.bio}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            <div className="flex justify-center mt-6 gap-4">
-              <button
-                onClick={handlePrevious}
-                className="bg-gray-200 text-secondary-blue p-2 rounded-full hover:bg-gray-300 transition-colors"
-                aria-label="Previous"
-              >
-                <FaArrowLeft size={16} />
-              </button>
-              <button
-                onClick={handleNext}
-                className="bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors"
-                aria-label="Next"
-              >
-                <FaArrowRight size={16} />
-              </button>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </div>
         </div>
       </div>
 
+      {/* --- */}
+
+      {/* ADD MODAL */}
       {addModalOpen && isUserAdmin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -447,13 +507,9 @@ export default function AboutUs() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const base64 = await convertToBase64(file);
-                      setNewMember({ ...newMember, imageBase64: base64 });
-                    }
-                  }}
+                  onChange={(e) =>
+                    setNewMember({ ...newMember, imageFile: e.target.files[0] })
+                  }
                   className="mt-1 p-2 w-full border border-gray-300 rounded"
                   required
                 />
@@ -467,14 +523,15 @@ export default function AboutUs() {
                   onChange={(e) =>
                     setNewMember({ ...newMember, bio: e.target.value })
                   }
-                  maxLength={200}
+                  maxLength={400}
                   className="mt-1 p-2 w-full border border-gray-300 rounded h-20"
                   placeholder="Brief bio (max 400 characters)"
                 />
                 <p className="text-xs text-gray-500">
-                  {newMember.bio.length}/200 characters
+                  {newMember.bio.length}/400 characters
                 </p>
               </div>
+              {/* Social links */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">
                   Facebook
@@ -489,7 +546,6 @@ export default function AboutUs() {
                     })
                   }
                   className="mt-1 p-2 w-full border border-gray-300 rounded"
-                  required
                 />
               </div>
               <div className="mb-4">
@@ -506,7 +562,6 @@ export default function AboutUs() {
                     })
                   }
                   className="mt-1 p-2 w-full border border-gray-300 rounded"
-                  required
                 />
               </div>
               <div className="mb-4">
@@ -523,7 +578,6 @@ export default function AboutUs() {
                     })
                   }
                   className="mt-1 p-2 w-full border border-gray-300 rounded"
-                  required
                 />
               </div>
               <div className="flex justify-end gap-4">
@@ -537,22 +591,21 @@ export default function AboutUs() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
-                  {loading ? "Adding..." : "Add Member"}
+                  {loading ? (
+                    <>
+                      <FaSpinner className="animate-spin mr-2" /> Adding...
+                    </>
+                  ) : (
+                    "Add Member"
+                  )}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      <style>{`
-        .line-clamp-faux {
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-        }
-      `}</style>
     </section>
   );
 }
