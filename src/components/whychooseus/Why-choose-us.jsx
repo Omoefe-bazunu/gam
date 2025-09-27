@@ -54,7 +54,10 @@ const WhyChooseUs = () => {
         </p>
         <div className="text-center">
           <a
-            href="/contact"
+            href="/consultation"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Get Started"
             className="bg-orange-500 flex w-fit text-lg mx-auto gap-2 items-center justify-center rounded-full text-white px-4 py-2 hover:bg-[#00042f] transition-colors mt-2"
           >
             <p>Get Started</p>

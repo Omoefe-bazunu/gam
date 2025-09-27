@@ -20,11 +20,17 @@ const Newsletter = () => {
         timestamp: serverTimestamp(),
         subscribedAt: new Date().toISOString(),
       });
+      const response = await fetch("/api/send-newsletter-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) throw new Error("Email send failed");
       setEmail("");
       setModalType("success");
       setModalMessage("Successfully subscribed! Check your inbox regularly.");
     } catch (error) {
-      console.error("Error subscribing:", error); // <-- add this for debugging
+      console.error("Error subscribing:", error);
       setModalType("failure");
       setModalMessage("Failed to subscribe. Please try again.");
     }
@@ -45,19 +51,22 @@ const Newsletter = () => {
         straight to your inbox.
       </p>
 
-      <form onSubmit={handleSubscribe} className="mt-6 flex justify-center">
+      <form
+        onSubmit={handleSubscribe}
+        className="mt-6 flex justify-center flex-col items-center gap-2"
+      >
         <input
           type="email"
           placeholder="Email Address"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="p-2 text-sm border border-gray-300 font-secondary font-normal rounded-l-lg w-full max-w-xs"
+          className="p-2 text-sm border border-gray-300 font-secondary font-normal rounded-lg w-full max-w-xs"
           required
         />
         <button
           type="submit"
           disabled={loading}
-          className="bg-orange-500 text-lg text-white py-2 px-4 rounded-r-lg hover:bg-[#00042f] hover:text-white transition-colors disabled:opacity-50"
+          className="bg-orange-500 text-lg text-white py-2 px-4 rounded-full hover:bg-[#00042f] hover:text-white transition-colors disabled:opacity-50"
         >
           {loading ? "Subscribing..." : "Subscribe to our Newsletter"}
         </button>

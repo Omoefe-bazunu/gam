@@ -1,5 +1,6 @@
 import { FaFacebookF, FaLinkedin, FaInstagram } from "react-icons/fa";
 import { HiOutlineMail, HiOutlinePhone } from "react-icons/hi";
+import { FaLocationDot } from "react-icons/fa6";
 
 export default function Footer() {
   return (
@@ -23,9 +24,10 @@ export default function Footer() {
       {/* Bottom Section */}
       <div className="max-w-7xl mx-auto px-6 lg:px-20 py-6 flex flex-col lg:flex-row items-center justify-between text-sm">
         {/* Address */}
-        <p className="mb-4 lg:mb-0">
-          30 N Gould St, Ste N, Sheridan, WY 82801, USA
-        </p>
+        <div className="mb-4 flex lg:mb-0">
+          <FaLocationDot className="text-xl mr-2" />
+          <p>30 N Gould St, Ste N, Sheridan, WY 82801, USA</p>
+        </div>
 
         {/* Social Icons */}
         <div className="flex space-x-6 mb-4 lg:mb-0">

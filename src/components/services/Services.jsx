@@ -259,20 +259,21 @@ const ServicesSection = () => {
                         className="bg-gray-100 p-6 text-secondary-blue hover:bg-primary-blue hover:text-white rounded-lg shadow-lg text-center transition-all duration-300 hover:scale-105 group cursor-pointer h-full"
                         onClick={() => (window.location.href = "/services")}
                       >
-                        <div className="w-full h-48 mb-4 overflow-hidden rounded-lg">
+                        <div className="w-full bg-primary-blue h-48 mb-4 overflow-hidden rounded-lg">
                           <img
                             src={item.imageUrl}
                             alt={item.title}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            className="w-full h-full object-fill transition-transform duration-300 group-hover:scale-105"
                             loading="lazy"
                             onError={(e) => {
                               e.target.src = "/fallback-service.jpg";
                               e.target.className =
-                                "w-full h-full object-contain p-4";
+                                "w-full h-full object-fill p-4";
                             }}
                           />
                         </div>
-                        <h3 className="text-xl font-semibold mb-3 line-clamp-2">
+
+                        <h3 className="text-sm font-semibold mb-3 line-clamp-2">
                           {item.title}
                         </h3>
                         <p className="font-light font-secondary text-sm line-clamp-3">

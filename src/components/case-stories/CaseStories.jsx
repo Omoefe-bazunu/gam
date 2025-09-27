@@ -162,7 +162,7 @@ const Casestories = () => {
                     {/* Business Meeting Image */}
                     <div className="relative h-96 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-2xl overflow-hidden">
                       <img
-                        src="/ourstory.png"
+                        src="/wh.jpeg"
                         alt="Business Meeting"
                         className="w-full h-full object-cover"
                       />

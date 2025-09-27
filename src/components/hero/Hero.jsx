@@ -76,7 +76,7 @@ const HeroSection = () => {
             </div> */}
             <div className=" flex">
               <a
-                href="/contact"
+                href="/consultation"
                 className="bg-orange-500 flex text-lg w-fit gap-2 items-center rounded-full text-white px-4 py-2 hover:bg-[#00042f] transition-colors"
               >
                 <p>Book a Consultation</p>

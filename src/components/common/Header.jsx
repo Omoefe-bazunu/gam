@@ -95,7 +95,10 @@ const Header = () => {
 
         <div className="flex items-center space-x-4">
           <a
-            href="/contact"
+            href="/consultation"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Get Started"
             className="bg-orange-500 hidden sm:flex gap-2 items-center rounded-full text-white px-4 py-2 hover:bg-[#00042f] transition-colors"
           >
             <p>Get Started</p>

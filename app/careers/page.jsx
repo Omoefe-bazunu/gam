@@ -7,10 +7,9 @@ import {
   getDocs,
   addDoc,
   serverTimestamp,
-  doc,
-  getDoc,
 } from "firebase/firestore";
-import { db } from "@/src/utils/firebase";
+import { db, storage } from "@/src/utils/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export default function CareerPage() {
   const [visibleJobs, setVisibleJobs] = useState(2);
@@ -29,11 +28,7 @@ export default function CareerPage() {
   });
   const [addJobForm, setAddJobForm] = useState({
     title: "",
-    location: "",
-    type: "",
     description: "",
-    fullDescription: "",
-    requirements: "",
   });
   const [volunteerForm, setVolunteerForm] = useState({
     name: "",
@@ -147,14 +142,13 @@ export default function CareerPage() {
       formData.coverLetter.type === "application/pdf"
     ) {
       try {
-        // Check if user is authenticated
         if (!user) {
           setError("You must be logged in to apply for jobs.");
           setLoading(false);
           return;
         }
 
-        // Check file sizes (max 5MB each)
+        // size check
         if (
           formData.cv.size > 5 * 1024 * 1024 ||
           formData.coverLetter.size > 5 * 1024 * 1024
@@ -164,36 +158,35 @@ export default function CareerPage() {
           return;
         }
 
-        console.log("Converting files to base64...");
+        // Upload CV to storage
+        const cvRef = ref(
+          storage,
+          `jobApplications/${user.uid}/cv_${Date.now()}_${formData.cv.name}`
+        );
+        await uploadBytes(cvRef, formData.cv);
+        const cvURL = await getDownloadURL(cvRef);
 
-        // Convert files to base64
-        const cvBase64 = await fileToBase64(formData.cv);
-        const coverLetterBase64 = await fileToBase64(formData.coverLetter);
+        // Upload Cover Letter
+        const clRef = ref(
+          storage,
+          `jobApplications/${user.uid}/coverLetter_${Date.now()}_${
+            formData.coverLetter.name
+          }`
+        );
+        await uploadBytes(clRef, formData.coverLetter);
+        const clURL = await getDownloadURL(clRef);
 
-        console.log("Files converted, saving to Firestore...");
-
-        // Save directly to Firestore with base64 data
+        // Save record to Firestore (just metadata + URLs)
         await addDoc(collection(db, "jobapplications"), {
           name: formData.name,
           email: formData.email,
           linkedin: formData.linkedin,
-          cv: {
-            data: cvBase64,
-            name: formData.cv.name,
-            size: formData.cv.size,
-            type: formData.cv.type,
-          },
-          coverLetter: {
-            data: coverLetterBase64,
-            name: formData.coverLetter.name,
-            size: formData.coverLetter.size,
-            type: formData.coverLetter.type,
-          },
+          cvURL,
+          coverLetterURL: clURL,
           userId: user.uid,
           timestamp: serverTimestamp(),
         });
 
-        console.log("Application saved to Firestore");
         setSubmissionStatus("success");
         setModalOpen(false);
         setFormData({
@@ -204,14 +197,7 @@ export default function CareerPage() {
           linkedin: "",
         });
       } catch (err) {
-        console.error("Error submitting application:", err);
-        if (err.message.includes("Document too large")) {
-          setError(
-            "Files are too large. Please use smaller PDF files (under 3MB each)."
-          );
-        } else {
-          setError(`Failed to submit application: ${err.message}`);
-        }
+        setError(`Failed to submit application: ${err.message}`);
         setSubmissionStatus("error");
       }
     } else {
@@ -233,11 +219,7 @@ export default function CareerPage() {
       setAddJobModalOpen(false);
       setAddJobForm({
         title: "",
-        location: "",
-        type: "",
         description: "",
-        fullDescription: "",
-        requirements: "",
       });
       const querySnapshot = await getDocs(collection(db, "jobopenings"));
       setJobOpenings(
@@ -291,59 +273,48 @@ export default function CareerPage() {
 
     if (cvForm.cv && cvForm.cv.type === "application/pdf") {
       try {
-        // Check if user is authenticated
         if (!user) {
           setError("You must be logged in to submit your CV.");
           setLoading(false);
           return;
         }
 
-        // Check file size (max 5MB)
         if (cvForm.cv.size > 5 * 1024 * 1024) {
           setError("File size must be less than 5MB.");
           setLoading(false);
           return;
         }
 
-        console.log("Converting CV to base64...");
+        // Upload CV to storage
+        const cvRef = ref(
+          storage,
+          `cvs/${user.uid}/cv_${Date.now()}_${cvForm.cv.name}`
+        );
+        await uploadBytes(cvRef, cvForm.cv);
+        const cvURL = await getDownloadURL(cvRef);
 
-        // Convert file to base64
-        const cvBase64 = await fileToBase64(cvForm.cv);
-
-        console.log("CV converted, saving to Firestore...");
-
-        // Save directly to Firestore with base64 data
+        // Save to Firestore
         await addDoc(collection(db, "cvs"), {
           name: cvForm.name,
           email: cvForm.email,
-          cv: {
-            data: cvBase64,
-            name: cvForm.cv.name,
-            size: cvForm.cv.size,
-            type: cvForm.cv.type,
-          },
+          phone: cvForm.phone,
+          message: cvForm.message,
+          cvURL,
           userId: user.uid,
           timestamp: serverTimestamp(),
         });
 
-        console.log("CV saved to Firestore");
         setSubmissionStatus("success");
         setCvModalOpen(false);
         setCvForm({
           name: "",
           email: "",
           phone: "",
+          message: "",
           cv: null,
         });
       } catch (err) {
-        console.error("Error submitting CV:", err);
-        if (err.message.includes("Document too large")) {
-          setError(
-            "File is too large. Please use a smaller PDF file (under 3MB)."
-          );
-        } else {
-          setError(`Failed to submit CV: ${err.message}`);
-        }
+        setError(`Failed to submit CV: ${err.message}`);
         setSubmissionStatus("error");
       }
     } else {
@@ -352,42 +323,98 @@ export default function CareerPage() {
     setLoading(false);
   };
 
-  // Helper function to format text with basic formatting
+  // Process inline formatting: bold and italic
+  const processInline = (text) => {
+    let parts = [];
+    let remaining = text;
+    let lastIndex = 0;
+
+    // Process bold **text**
+    const boldRegex = /\*\*(.*?)\*\*/g;
+    let boldMatch;
+    while ((boldMatch = boldRegex.exec(remaining)) !== null) {
+      if (boldMatch.index > lastIndex) {
+        parts.push(remaining.substring(lastIndex, boldMatch.index));
+      }
+      parts.push(<strong key={`bold-${parts.length}`}>{boldMatch[1]}</strong>);
+      lastIndex = boldRegex.lastIndex;
+    }
+    if (lastIndex < remaining.length) {
+      parts.push(remaining.substring(lastIndex));
+    }
+
+    // Now process italics in string parts
+    return parts.flatMap((part, i) => {
+      if (typeof part !== "string") return part;
+      const italicParts = [];
+      let italRemaining = part;
+      let italLast = 0;
+      const italicRegex = /\*([^*]+)\*/g;
+      let italMatch;
+      while ((italMatch = italicRegex.exec(italRemaining)) !== null) {
+        if (italMatch.index > italLast) {
+          italicParts.push(italRemaining.substring(italLast, italMatch.index));
+        }
+        italicParts.push(
+          <em key={`italic-${italicParts.length}`}>{italMatch[1]}</em>
+        );
+        italLast = italicRegex.lastIndex;
+      }
+      if (italLast < italRemaining.length) {
+        italicParts.push(italRemaining.substring(italLast));
+      }
+      return italicParts;
+    });
+  };
+
+  // Process links and apply inline formatting to text parts
+  const processLinks = (text, keyBase) => {
+    const parts = [];
+    let lastIndex = 0;
+    let linkIndex = 0;
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    let match;
+    while ((match = linkRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(...processInline(text.substring(lastIndex, match.index)));
+      }
+      parts.push(
+        <a
+          key={`link-${keyBase}-${linkIndex}`}
+          href={match[2]}
+          className="text-blue-600 underline hover:text-blue-800"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {processInline(match[1])}
+        </a>
+      );
+      lastIndex = match.index + match[0].length;
+      linkIndex++;
+    }
+    if (lastIndex < text.length) {
+      parts.push(...processInline(text.substring(lastIndex)));
+    }
+    return parts;
+  };
+
+  // Format text with paragraphs, bullets, and inline formatting
   const formatText = (text) => {
     if (!text) return "";
 
     return text.split("\n").map((line, index) => {
-      // Handle bullet points
-      if (
-        line.trim().startsWith("•") ||
-        line.trim().startsWith("-") ||
-        line.trim().startsWith("*")
-      ) {
+      const trimmedLine = line.trim();
+      if (trimmedLine.match(/^[•\-*]\s*/)) {
+        const bulletText = line.replace(/^[•\-*]\s*/, "");
         return (
-          <li key={index} className="ml-4">
-            {line.trim().substring(1).trim()}
+          <li key={index} className="ml-4 mb-2">
+            {processLinks(bulletText, `bullet-${index}`)}
           </li>
         );
       }
-      // Handle bold text **text** or __text__
-      const boldFormatted = line
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/__(.*?)__/g, "<strong>$1</strong>");
-
-      if (boldFormatted !== line) {
-        return (
-          <p
-            key={index}
-            dangerouslySetInnerHTML={{ __html: boldFormatted }}
-            className="mb-2"
-          />
-        );
-      }
-
-      // Regular paragraph
-      return line.trim() ? (
+      return trimmedLine ? (
         <p key={index} className="mb-2">
-          {line}
+          {processLinks(line, `para-${index}`)}
         </p>
       ) : (
         <br key={index} />
@@ -429,15 +456,6 @@ export default function CareerPage() {
                 <h3 className="text-xl font-semibold text-secondary-blue mb-2">
                   {job.title}
                 </h3>
-                <p className="text-sm text-gray-600 mb-2">
-                  <strong>Location:</strong> {job.location}
-                </p>
-                <p className="text-sm text-gray-600 mb-2">
-                  <strong>Type:</strong> {job.type}
-                </p>
-                <p className="text-sm text-gray-600 font-secondary mb-4">
-                  {job.description}
-                </p>
                 <button
                   onClick={() => toggleExpand(job.id)}
                   className="text-orange-500 hover:text-orange-600 font-medium"
@@ -447,20 +465,16 @@ export default function CareerPage() {
                 {expandedJob === job.id && (
                   <div className="mt-4">
                     <div className="text-sm text-gray-600 mb-2">
-                      <strong>Full Description:</strong>
+                      <span className=" font-semibold text-lg">
+                        Description:
+                      </span>
                       <div className="font-secondary mt-1 max-h-48 overflow-y-auto">
-                        {formatText(job.fullDescription)}
-                      </div>
-                    </div>
-                    <div className="text-sm text-gray-600 mb-2">
-                      <strong>Requirements:</strong>
-                      <div className="font-secondary mt-1 max-h-48 overflow-y-auto">
-                        {formatText(job.requirements)}
+                        {formatText(job.description || job.fullDescription)}
                       </div>
                     </div>
                     <button
                       onClick={() => setModalOpen(true)}
-                      className="mt-4 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                      className="mt-4 hidden bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors"
                     >
                       Apply Now
                     </button>
@@ -620,75 +634,20 @@ export default function CareerPage() {
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700">
-                  Location
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={addJobForm.location}
-                  onChange={handleAddJobInputChange}
-                  className="mt-1 p-2 w-full border border-gray-300 rounded"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Type
-                </label>
-                <input
-                  type="text"
-                  name="type"
-                  value={addJobForm.type}
-                  onChange={handleAddJobInputChange}
-                  className="mt-1 p-2 w-full border border-gray-300 rounded"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
                   Description
                 </label>
                 <textarea
                   name="description"
                   value={addJobForm.description}
                   onChange={handleAddJobInputChange}
-                  placeholder="Brief job description..."
-                  className="mt-1 p-2 w-full border border-gray-300 rounded h-20"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Full Description
-                </label>
-                <textarea
-                  name="fullDescription"
-                  value={addJobForm.fullDescription}
-                  onChange={handleAddJobInputChange}
-                  placeholder="Detailed job description. Use ** for bold text, • or - for bullet points..."
+                  placeholder="Detailed job description. Use ** for bold text, * for italics, • or - for bullet points, [text](url) for links..."
                   className="mt-1 p-2 w-full border border-gray-300 rounded h-32"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Formatting tips: Use **text** for bold, • or - for bullet
-                  points, separate paragraphs with blank lines
-                </p>
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Requirements
-                </label>
-                <textarea
-                  name="requirements"
-                  value={addJobForm.requirements}
-                  onChange={handleAddJobInputChange}
-                  placeholder="Job requirements. Use ** for bold text, • or - for bullet points..."
-                  className="mt-1 p-2 w-full border border-gray-300 rounded h-32"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Formatting tips: Use **text** for bold, • or - for bullet
-                  points, separate paragraphs with blank lines
+                  Formatting tips: Use **text** for bold, *text* for italic, •
+                  or - for bullet points, [text](url) for links, separate
+                  paragraphs with blank lines
                 </p>
               </div>
               {error && (

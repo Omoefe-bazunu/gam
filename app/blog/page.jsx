@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { FaThumbsUp, FaShareAlt, FaComment } from "react-icons/fa";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,6 +17,299 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/src/utils/firebase";
 import { useAuth } from "@/src/contexts/AuthContext";
 import Newsletter from "@/src/components/newsletters/Newsletters";
+
+// Rich Text Editor Component
+const RichTextEditor = ({ value, onChange, placeholder }) => {
+  const textareaRef = useRef(null);
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+
+  const insertFormatting = (format) => {
+    const textarea = textareaRef.current;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = value.substring(start, end);
+
+    let newText = "";
+    let cursorPosition = start;
+
+    switch (format) {
+      case "bold":
+        if (selectedText) {
+          newText =
+            value.substring(0, start) +
+            `**${selectedText}**` +
+            value.substring(end);
+          cursorPosition = end + 4;
+        } else {
+          newText =
+            value.substring(0, start) + "**bold text**" + value.substring(end);
+          cursorPosition = start + 2;
+        }
+        break;
+      case "italic":
+        if (selectedText) {
+          newText =
+            value.substring(0, start) +
+            `*${selectedText}*` +
+            value.substring(end);
+          cursorPosition = end + 2;
+        } else {
+          newText =
+            value.substring(0, start) + "*italic text*" + value.substring(end);
+          cursorPosition = start + 1;
+        }
+        break;
+      case "bullet":
+        const lines = value.split("\n");
+        const currentLineIndex =
+          value.substring(0, start).split("\n").length - 1;
+        const currentLine = lines[currentLineIndex];
+
+        if (currentLine.trim().startsWith("• ")) {
+          lines[currentLineIndex] = currentLine.replace(/^(\s*)• /, "$1");
+        } else {
+          lines[currentLineIndex] = "• " + currentLine;
+        }
+
+        newText = lines.join("\n");
+        cursorPosition = start + 2;
+        break;
+      case "link":
+        const linkText = selectedText || "link text";
+        const linkMarkdown = `[${linkText}](https://example.com)`;
+        newText =
+          value.substring(0, start) + linkMarkdown + value.substring(end);
+        cursorPosition = start + linkMarkdown.length;
+        break;
+      default:
+        return;
+    }
+
+    onChange(newText);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(cursorPosition, cursorPosition);
+    }, 0);
+  };
+
+  // Helper function to process links
+  const processLinks = (text, keyBase) => {
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+    let linkIndex = 0;
+
+    while ((match = linkRegex.exec(text)) !== null) {
+      // Add text before the link
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      // Add the link
+      parts.push(
+        <a
+          key={`link-${keyBase}-${linkIndex}`}
+          href={match[2]}
+          className="text-blue-600 underline hover:text-blue-800"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {match[1]}
+        </a>
+      );
+      lastIndex = match.index + match[0].length;
+      linkIndex++;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length === 1 ? parts[0] : parts;
+  };
+
+  // Fixed inline text formatting that returns React elements
+  const formatInlineText = (text) => {
+    if (!text) return null;
+
+    // Process bold formatting first
+    const boldRegex = /\*\*(.*?)\*\*/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    // Find all bold sections
+    while ((match = boldRegex.exec(text)) !== null) {
+      // Add text before the bold section
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+
+      // Add the bold section
+      parts.push(<strong key={`bold-${match.index}`}>{match[1]}</strong>);
+      lastIndex = match.index + match[0].length;
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      const remainingText = text.substring(lastIndex);
+
+      // Process italic formatting in remaining text
+      const italicRegex = /(?<!\*)\*([^*]+)\*(?!\*)/g;
+      let italicParts = [];
+      let italicLastIndex = 0;
+      let italicMatch;
+
+      while ((italicMatch = italicRegex.exec(remainingText)) !== null) {
+        // Add text before the italic section
+        if (italicMatch.index > italicLastIndex) {
+          italicParts.push(
+            remainingText.substring(italicLastIndex, italicMatch.index)
+          );
+        }
+
+        // Add the italic section
+        italicParts.push(
+          <em key={`italic-${italicMatch.index}`}>{italicMatch[1]}</em>
+        );
+        italicLastIndex = italicMatch.index + italicMatch[0].length;
+      }
+
+      // Add remaining text after italic processing
+      if (italicLastIndex < remainingText.length) {
+        italicParts.push(remainingText.substring(italicLastIndex));
+      }
+
+      // Process links in the italic parts
+      const finalParts = italicParts.map((part, i) => {
+        if (typeof part === "string") {
+          return processLinks(part, i);
+        }
+        return part;
+      });
+
+      parts.push(...finalParts);
+    } else {
+      // Process links in string parts
+      const finalParts = parts.map((part, i) => {
+        if (typeof part === "string") {
+          return processLinks(part, i);
+        }
+        return part;
+      });
+      return finalParts;
+    }
+
+    return parts;
+  };
+
+  // Fixed formatting function that returns React elements
+  const formatTextForPreview = (text) => {
+    if (!text) return "";
+
+    return text.split("\n").map((line, index) => {
+      const trimmedLine = line.trim();
+
+      // Handle bullet points
+      if (trimmedLine.match(/^[•\-*]\s/)) {
+        return (
+          <li key={index} className="ml-4 mb-2">
+            {formatInlineText(trimmedLine.substring(2))}
+          </li>
+        );
+      }
+
+      // Handle regular paragraphs
+      return trimmedLine ? (
+        <p key={index} className="mb-4">
+          {formatInlineText(line)}
+        </p>
+      ) : (
+        <br key={index} />
+      );
+    });
+  };
+
+  return (
+    <div className="border border-gray-300 rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="bg-gray-50 border-b border-gray-300 px-3 py-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => insertFormatting("bold")}
+          className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded font-bold"
+          title="Bold"
+        >
+          B
+        </button>
+        <button
+          type="button"
+          onClick={() => insertFormatting("italic")}
+          className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded italic"
+          title="Italic"
+        >
+          I
+        </button>
+        <button
+          type="button"
+          onClick={() => insertFormatting("bullet")}
+          className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded"
+          title="Bullet Point"
+        >
+          •
+        </button>
+        <button
+          type="button"
+          onClick={() => insertFormatting("link")}
+          className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded"
+          title="Link"
+        >
+          🔗
+        </button>
+        <div className="ml-auto">
+          <button
+            type="button"
+            onClick={() => setIsPreviewMode(!isPreviewMode)}
+            className={`p-2 rounded ${
+              isPreviewMode
+                ? "bg-blue-100 text-blue-600"
+                : "text-gray-600 hover:text-gray-800 hover:bg-gray-200"
+            }`}
+            title="Preview"
+          >
+            👁
+          </button>
+        </div>
+      </div>
+
+      {/* Editor/Preview Area */}
+      <div className="min-h-[200px]">
+        {isPreviewMode ? (
+          <div className="p-4 prose max-w-none">
+            {formatTextForPreview(value)}
+          </div>
+        ) : (
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full h-48 p-4 resize-none focus:outline-none"
+            style={{ minHeight: "200px" }}
+          />
+        )}
+      </div>
+
+      {/* Help text */}
+      <div className="bg-gray-50 border-t border-gray-300 px-3 py-2 text-xs text-gray-500">
+        Use **bold**, *italic*, • bullets, and [link text](url) for formatting
+      </div>
+    </div>
+  );
+};
 
 export default function Blog() {
   const [visiblePosts, setVisiblePosts] = useState(3);
@@ -58,6 +351,9 @@ export default function Blog() {
             alt={post.title}
             className="w-full h-48 object-cover"
             loading="lazy"
+            onError={(e) => {
+              e.target.src = "/fallback-blog.jpg";
+            }}
           />
         ) : (
           // Use Next.js Image for local images
@@ -222,31 +518,55 @@ export default function Blog() {
     setModalMessage("");
   };
 
+  // Fixed formatText function for blog post display
   const formatText = (text) => {
     if (!text) return "";
 
+    const processText = (text) => {
+      const parts = [];
+      let remainingText = text;
+
+      // Process bold formatting
+      const boldRegex = /\*\*(.*?)\*\*/g;
+      let boldMatch;
+      let lastIndex = 0;
+
+      while ((boldMatch = boldRegex.exec(remainingText)) !== null) {
+        // Add text before bold
+        if (boldMatch.index > lastIndex) {
+          parts.push(remainingText.substring(lastIndex, boldMatch.index));
+        }
+
+        // Add bold text
+        parts.push(
+          <strong key={`bold-${boldMatch.index}`}>{boldMatch[1]}</strong>
+        );
+        lastIndex = boldRegex.lastIndex;
+      }
+
+      // Add remaining text
+      if (lastIndex < remainingText.length) {
+        parts.push(remainingText.substring(lastIndex));
+      }
+
+      return parts;
+    };
+
     return text.split("\n").map((line, index) => {
-      if (
-        line.trim().startsWith("•") ||
-        line.trim().startsWith("-") ||
-        line.trim().startsWith("*")
-      ) {
+      const trimmedLine = line.trim();
+
+      if (trimmedLine.match(/^[•\-*]\s/)) {
         return (
-          <li key={index} className="ml-4">
-            {line.trim().substring(1).trim()}
+          <li key={index} className="ml-4 mb-2">
+            {processText(trimmedLine.substring(2))}
           </li>
         );
       }
-      const boldFormatted = line
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/__(.*?)__/g, "<strong>$1</strong>");
 
-      return line.trim() ? (
-        <p
-          key={index}
-          dangerouslySetInnerHTML={{ __html: boldFormatted }}
-          className="mb-2"
-        />
+      return trimmedLine ? (
+        <p key={index} className="mb-2">
+          {processText(line)}
+        </p>
       ) : (
         <br key={index} />
       );
@@ -335,13 +655,14 @@ export default function Blog() {
         {/* Add Post Modal */}
         {addModalOpen && isUserAdmin && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <h3 className="text-xl font-semibold text-secondary-blue mb-4">
                 Add Blog Post
               </h3>
-              <form onSubmit={handleSavePost}>
-                <div className="mb-4 font-secondary">
-                  <label className="block text-sm font-medium text-gray-700">
+
+              <div className="space-y-4">
+                <div className="font-secondary">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Title
                   </label>
                   <input
@@ -350,13 +671,14 @@ export default function Blog() {
                     onChange={(e) =>
                       setNewPost({ ...newPost, title: e.target.value })
                     }
-                    className="mt-1 p-2 w-full border border-gray-300 rounded"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                     maxLength={100}
                   />
                 </div>
-                <div className="mb-4 font-secondary">
-                  <label className="block text-sm font-medium text-gray-700">
+
+                <div className="font-secondary">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Excerpt
                   </label>
                   <textarea
@@ -364,65 +686,65 @@ export default function Blog() {
                     onChange={(e) =>
                       setNewPost({ ...newPost, excerpt: e.target.value })
                     }
-                    className="mt-1 p-2 w-full border border-gray-300 rounded h-20"
+                    className="w-full p-3 border border-gray-300 rounded-lg h-20 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                     maxLength={200}
+                    placeholder="Brief description of the post..."
                   />
                 </div>
-                <div className="mb-4 font-secondary">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Body
+
+                <div className="font-secondary">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Body Content
                   </label>
-                  <textarea
+                  <RichTextEditor
                     value={newPost.body}
-                    onChange={(e) =>
-                      setNewPost({ ...newPost, body: e.target.value })
+                    onChange={(value) =>
+                      setNewPost({ ...newPost, body: value })
                     }
-                    className="mt-1 p-2 w-full border border-gray-300 rounded h-32"
-                    required
+                    placeholder="Write your blog post content here..."
                   />
                 </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700">
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Image (Max 5MB)
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
-                    className="mt-1 p-2 w-full border border-gray-300 rounded"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                   {newPost.imageFile && (
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-gray-600 mt-2">
                       Selected: {newPost.imageFile.name}
                     </p>
                   )}
                 </div>
-                <div className="flex justify-end gap-4">
+
+                <div className="flex justify-end gap-4 pt-4">
                   <button
                     type="button"
                     onClick={() => setAddModalOpen(false)}
-                    className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                    className="bg-gray-300 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleSavePost}
                     disabled={loading}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                   >
-                    {loading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                        Adding...
-                      </>
-                    ) : (
-                      "Add Post"
+                    {loading && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                     )}
+                    {loading ? "Adding..." : "Add Post"}
                   </button>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         )}

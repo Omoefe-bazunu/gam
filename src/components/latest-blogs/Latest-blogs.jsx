@@ -133,17 +133,17 @@ export default function LatestBlogUpdates() {
                   </span>
                 </div>
 
-                <h3 className="text-xl font-semibold line-clamp-2 mb-3 min-h-[3rem]">
+                <h3 className="text-lg font-semibold line-clamp-2 mb-3 min-h-[3rem]">
                   {blog.title || "Default title"}
                 </h3>
 
-                <p className="text-gray-600 text-sm line-clamp-2 mb-4">
+                <p className="text-gray-600 text-sm line-clamp-2 mb-4 font-secondary">
                   {blog.excerpt || "Read more about this insightful blog post."}
                 </p>
 
                 <Link
                   href={`/blog/${blog.id}`}
-                  className="bg-orange-500 text-lg w-fit flex gap-2 items-center rounded-full text-white px-4 py-2 hover:bg-[#00042f] transition-colors"
+                  className="bg-orange-500 text-sm w-fit flex gap-2 items-center rounded-full text-white px-4 py-2 hover:bg-[#00042f] transition-colors"
                   prefetch={false}
                 >
                   Read More

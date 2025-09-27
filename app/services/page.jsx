@@ -291,10 +291,11 @@ export default function Services() {
                       <img
                         src={service.imageUrl}
                         alt={service.title}
-                        className="w-full h-48 object-cover"
+                        className="w-full h-48 object-fill transition-transform duration-300"
                         loading="lazy"
                         onError={(e) => {
                           e.target.src = "/fallback-service.jpg";
+                          e.target.className = "w-full h-48 object-fill";
                         }}
                       />
                     )}

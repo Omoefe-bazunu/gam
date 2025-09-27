@@ -14,6 +14,7 @@ import {
   query,
   where,
   orderBy,
+  deleteDoc,
 } from "firebase/firestore";
 import { ref, getDownloadURL } from "firebase/storage";
 import { db, storage } from "@/src/utils/firebase";
@@ -58,6 +59,115 @@ export default function BlogDetails() {
     }
   }, []);
 
+  // Enhanced text formatting functions
+  const formatInlineText = useCallback((text) => {
+    const parts = [];
+    let remaining = text;
+    let key = 0;
+
+    while (remaining) {
+      // Check for bold (**text**)
+      const boldMatch = remaining.match(/\*\*(.*?)\*\*/);
+      if (boldMatch) {
+        const beforeBold = remaining.substring(0, boldMatch.index);
+        if (beforeBold) {
+          parts.push(
+            <span key={key++}>{formatItalicAndLinks(beforeBold)}</span>
+          );
+        }
+        parts.push(
+          <strong key={key++}>{formatItalicAndLinks(boldMatch[1])}</strong>
+        );
+        remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+      } else {
+        parts.push(<span key={key++}>{formatItalicAndLinks(remaining)}</span>);
+        break;
+      }
+    }
+
+    return parts;
+  }, []);
+
+  const formatItalicAndLinks = useCallback((text) => {
+    const parts = [];
+    let remaining = text;
+    let key = 0;
+
+    while (remaining) {
+      // Check for italic (*text*) - avoid matching ** patterns
+      const italicMatch = remaining.match(/(?<!\*)\*([^*]+)\*(?!\*)/);
+      // Check for links [text](url)
+      const linkMatch = remaining.match(/\[([^\]]+)\]\(([^)]+)\)/);
+
+      const nextItalic = italicMatch ? italicMatch.index : Infinity;
+      const nextLink = linkMatch ? linkMatch.index : Infinity;
+
+      if (nextItalic < nextLink) {
+        // Process italic first
+        const beforeItalic = remaining.substring(0, italicMatch.index);
+        if (beforeItalic) {
+          parts.push(<span key={key++}>{beforeItalic}</span>);
+        }
+        parts.push(<em key={key++}>{italicMatch[1]}</em>);
+        remaining = remaining.substring(
+          italicMatch.index + italicMatch[0].length
+        );
+      } else if (nextLink < nextItalic) {
+        // Process link first
+        const beforeLink = remaining.substring(0, linkMatch.index);
+        if (beforeLink) {
+          parts.push(<span key={key++}>{beforeLink}</span>);
+        }
+        parts.push(
+          <a
+            key={key++}
+            href={linkMatch[2]}
+            className="text-blue-600 underline hover:text-blue-800"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {linkMatch[1]}
+          </a>
+        );
+        remaining = remaining.substring(linkMatch.index + linkMatch[0].length);
+      } else {
+        parts.push(<span key={key++}>{remaining}</span>);
+        break;
+      }
+    }
+
+    return parts;
+  }, []);
+
+  const formatText = useCallback(
+    (text) => {
+      if (!text) return null;
+
+      return text.split("\n").map((line, index) => {
+        const trimmedLine = line.trim();
+
+        // Handle bullet points
+        if (trimmedLine.match(/^[•\-*]\s/)) {
+          return (
+            <li key={index} className="ml-4 mb-4">
+              {formatInlineText(trimmedLine.substring(2))}
+            </li>
+          );
+        }
+
+        // Handle regular paragraphs
+        return trimmedLine ? (
+          <p key={index} className="mb-4">
+            {formatInlineText(line)}
+          </p>
+        ) : (
+          <br key={index} />
+        );
+      });
+    },
+    [formatInlineText]
+  );
+
   // Optimized data fetching
   const fetchPostData = useCallback(async () => {
     if (!params.id) return;
@@ -95,7 +205,8 @@ export default function BlogDetails() {
         if (user) {
           const userReactionQuery = query(
             collection(db, "blogPosts", params.id, "reactions"),
-            where("userId", "==", user.uid)
+            where("userId", "==", user.uid),
+            where("active", "==", true)
           );
           const userReactionSnapshot = await getDocs(userReactionQuery);
           setUserReaction(!userReactionSnapshot.empty);
@@ -108,7 +219,7 @@ export default function BlogDetails() {
         }));
         setComments(commentsData);
 
-        // Process related posts
+        // Process related posts - enhanced logic
         const allPosts = allPostsSnapshot.docs
           .filter((doc) => doc.id !== params.id)
           .map((doc) => ({
@@ -116,7 +227,28 @@ export default function BlogDetails() {
             ...doc.data(),
           }));
 
-        setRelated(allPosts.slice(0, 3));
+        // Try to find related posts by category or tags if available
+        const currentPostCategory = postData.category || "general";
+        let relatedPosts = allPosts
+          .filter((p) => {
+            // If posts have categories, prioritize same category
+            if (p.category && postData.category) {
+              return p.category === currentPostCategory;
+            }
+            return true; // Include all if no category matching
+          })
+          .slice(0, 3);
+
+        // If we don't have enough related posts from same category, fill with others
+        if (relatedPosts.length < 3) {
+          const remainingPosts = allPosts
+            .filter((p) => !relatedPosts.find((rp) => rp.id === p.id))
+            .slice(0, 3 - relatedPosts.length);
+
+          relatedPosts.push(...remainingPosts);
+        }
+
+        setRelated(relatedPosts);
       } else {
         setPost(null);
       }
@@ -144,15 +276,21 @@ export default function BlogDetails() {
         setReactionCount(newCount);
         setUserReaction(false);
 
+        // Find and delete the user's reaction
         const userReactionQuery = query(
           collection(db, "blogPosts", params.id, "reactions"),
-          where("userId", "==", user.uid)
+          where("userId", "==", user.uid),
+          where("active", "==", true)
         );
         const userReactionSnapshot = await getDocs(userReactionQuery);
-        userReactionSnapshot.forEach(async (doc) => {
-          await updateDoc(doc.ref, { active: false });
-        });
 
+        // Delete all active reactions from this user (should be only one)
+        const deletePromises = userReactionSnapshot.docs.map((doc) =>
+          deleteDoc(doc.ref)
+        );
+        await Promise.all(deletePromises);
+
+        // Update post reaction count
         await updateDoc(doc(db, "blogPosts", params.id), {
           reactions: newCount,
         });
@@ -162,20 +300,24 @@ export default function BlogDetails() {
         setReactionCount(newCount);
         setUserReaction(true);
 
+        // Add new reaction
         await addDoc(collection(db, "blogPosts", params.id, "reactions"), {
           userId: user.uid,
           timestamp: serverTimestamp(),
           active: true,
         });
 
+        // Update post reaction count
         await updateDoc(doc(db, "blogPosts", params.id), {
           reactions: newCount,
         });
       }
     } catch (error) {
       console.error("Error updating reaction:", error);
+      // Revert optimistic updates on error
       setReactionCount((prev) => (userReaction ? prev + 1 : prev - 1));
       setUserReaction(!userReaction);
+      alert("Failed to update reaction. Please try again.");
     }
   };
 
@@ -248,44 +390,6 @@ export default function BlogDetails() {
     }
   };
 
-  const formatText = useCallback((text) => {
-    if (!text) return null;
-
-    return text.split("\n").map((line, index) => {
-      const trimmedLine = line.trim();
-
-      if (trimmedLine.match(/^[•\-*]\s/)) {
-        return (
-          <li key={index} className="ml-4 mb-4">
-            {trimmedLine.substring(2)}
-          </li>
-        );
-      }
-
-      const boldFormatted = trimmedLine
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/__(.*?)__/g, "<strong>$1</strong>");
-
-      if (boldFormatted !== trimmedLine) {
-        return (
-          <span
-            key={index}
-            dangerouslySetInnerHTML={{ __html: boldFormatted }}
-            className="block mb-4"
-          />
-        );
-      }
-
-      return trimmedLine ? (
-        <p key={index} className="mb-4">
-          {line}
-        </p>
-      ) : (
-        <br key={index} />
-      );
-    });
-  }, []);
-
   const RelatedPostCard = useMemo(
     () =>
       ({ post }) => {
@@ -294,26 +398,35 @@ export default function BlogDetails() {
         );
 
         useEffect(() => {
-          if (post.imageUrl) {
-            setRelatedImageUrl(post.imageUrl);
-          } else if (post.imagePath) {
-            fetchImageUrl(post.imagePath).then(setRelatedImageUrl);
-          }
-        }, [post.imageUrl, post.imagePath, fetchImageUrl]);
+          const loadImage = async () => {
+            if (post.imageUrl) {
+              setRelatedImageUrl(post.imageUrl);
+            } else if (post.imagePath) {
+              const url = await fetchImageUrl(post.imagePath);
+              setRelatedImageUrl(url);
+            }
+          };
+          loadImage();
+        }, [post.imageUrl, post.imagePath]);
 
         return (
           <div className="bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
             <img
               src={relatedImageUrl}
-              alt={post.title}
+              alt={post.title || "Blog post"}
               className="w-full h-40 object-cover rounded-t-lg"
               loading="lazy"
+              onError={(e) => {
+                e.target.src = "/default-blog-image.jpg";
+              }}
             />
             <div className="p-4">
               <h4 className="text-lg font-semibold text-secondary-blue mb-2 line-clamp-2">
-                {post.title}
+                {post.title || "Untitled Post"}
               </h4>
-              <p className="text-sm text-gray-500 mb-4">{post.date}</p>
+              <p className="text-sm text-gray-500 mb-4">
+                {post.date || "No date available"}
+              </p>
               <Link href={`/blog/${post.id}`}>
                 <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors w-full">
                   Read More
@@ -367,6 +480,9 @@ export default function BlogDetails() {
           alt={post.title}
           className="w-full h-64 md:h-96 object-cover rounded-xl mb-6 bg-gray-200"
           loading="eager"
+          onError={(e) => {
+            e.target.src = "/default-blog-image.jpg";
+          }}
         />
 
         <h1 className="text-3xl font-bold text-secondary-blue mb-4">
