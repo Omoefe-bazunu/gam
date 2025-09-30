@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
   const signup = async (email, password) => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      router.push("/");
+      // router.push("/");
     } catch (error) {
       console.error("Signup failed:", error);
       throw error;

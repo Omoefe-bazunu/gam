@@ -288,16 +288,21 @@ export default function Services() {
                 >
                   <div className="relative overflow-hidden rounded-xl mb-4">
                     {service.imageUrl && (
-                      <img
-                        src={service.imageUrl}
-                        alt={service.title}
-                        className="w-full h-48 object-fill transition-transform duration-300"
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.src = "/fallback-service.jpg";
-                          e.target.className = "w-full h-48 object-fill";
-                        }}
-                      />
+                      <div className="w-full aspect-[4/3]">
+                        {" "}
+                        {/* Keeps a fixed ratio but responsive */}
+                        <img
+                          src={service.imageUrl}
+                          alt={service.title}
+                          className="w-full h-full object-cover transition-transform duration-300"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.target.src = "/fallback-service.jpg";
+                            e.target.className =
+                              "w-full h-full object-contain p-4";
+                          }}
+                        />
+                      </div>
                     )}
                   </div>
                   <h3 className="text-xl font-semibold text-secondary-blue mb-2 line-clamp-2">

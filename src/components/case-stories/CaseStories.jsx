@@ -114,7 +114,7 @@ const Casestories = () => {
                       className="flex flex-col font-secondary spaace-y-2"
                       key={index}
                     >
-                      <p className="text-gray-700 text-lg font-primary font-medium">
+                      <p className="text-green-800 text-lg font-primary font-bold">
                         {feature.main}
                       </p>
                       <p className="text-gray-700 text-sm">{feature.sub}</p>

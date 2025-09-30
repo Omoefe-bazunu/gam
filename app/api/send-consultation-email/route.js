@@ -29,81 +29,81 @@ export async function POST(request) {
 
     const companyName = "Gambrills Partners LLC";
     const logoUrl =
-      "https://firebasestorage.googleapis.com/v0/b/entcarepat.appspot.com/o/App%20Icon_GPL.webp?alt=media&token=893f7df9-4613-4477-86a4-9cf3a2880ce8";
+      "https://firebasestorage.googleapis.com/v0/b/entcarepat.appspot.com/o/logow.png?alt=media&token=46141b3f-a853-4401-b49a-4ef6a3d2ca4d";
 
     // Email content for the user
     const userEmailHtml = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Consultation Request Received</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; }
-            .header { background-color: white; padding: 20px; text-align: center; }
-            .content { padding: 30px 20px; }
-            .highlight { background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0; }
-            .footer { background-color: #f9fafb; padding: 20px; text-align: center; font-size: 14px; color: #6b7280; }
-            .button { background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-          <div style="text-align: center; margin-bottom: 20px;">
-          <img src="${logoUrl}" alt="${companyName}" style="max-width: 150px; height: auto;" />
-          <h2 className='text-blue-900 >${companyName}</h2>
+    <!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultation Request Received</title>
+  </head>
+  <body style="background-color: #f7f7f7; margin: 0; padding: 30px 0; font-family: Arial, sans-serif; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden;">
+      
+      <!-- Header -->
+      <div style="text-align: center; padding: 30px 20px; background-color: #007bff; color: #ffffff;">
+        <img src="${logoUrl}" alt="${companyName}" style="max-width: 90px; height: auto; margin-bottom: 12px;" />
+        <h2 style="margin: 0; font-size: 22px; font-weight: 600;">${companyName}</h2>
+        <h1 style="margin: 12px 0 0 0; font-size: 20px; font-weight: 500;">Thank You for Your Consultation Request!</h1>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 35px 25px; color: #444; line-height: 1.7;">
+        <p>Dear ${formData.firstName} ${formData.lastName},</p>
+
+        <p>We have successfully received your consultation request and appreciate your interest in our business consulting services.</p>
+
+        <!-- Highlight Section -->
+        <div style="background-color: #f3f4f6; padding: 18px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="margin-top: 0; font-size: 16px; color: #111;">Your Request Details:</h3>
+          <p><strong>Company:</strong> ${formData.companyName}</p>
+          <p><strong>Business Type:</strong> ${formData.businessType}</p>
+          <p><strong>Consultation Type:</strong> ${
+            formData.consultationType
+          }</p>
+          <p><strong>Preferred Date:</strong> ${formatDate(
+            formData.preferredDate
+          )}</p>
+          <p><strong>Preferred Time:</strong> ${formatTime(
+            formData.preferredTime
+          )}</p>
+          ${
+            formData.message
+              ? `<p><strong>Additional Information:</strong> ${formData.message}</p>`
+              : ""
+          }
         </div>
-            <h1 className='text-blue-800'>Thank You for Your Consultation Request!</h1>
-          </div>
-          
-          <div class="content">
-            <p>Dear ${formData.firstName} ${formData.lastName},</p>
-            
-            <p>We have successfully received your consultation request and appreciate your interest in our business consulting services.</p>
-            
-            <div class="highlight">
-              <h3>Your Request Details:</h3>
-              <p><strong>Company:</strong> ${formData.companyName}</p>
-              <p><strong>Business Type:</strong> ${formData.businessType}</p>
-              <p><strong>Consultation Type:</strong> ${
-                formData.consultationType
-              }</p>
-              <p><strong>Preferred Date:</strong> ${formatDate(
-                formData.preferredDate
-              )}</p>
-              <p><strong>Preferred Time:</strong> ${formatTime(
-                formData.preferredTime
-              )}</p>
-              ${
-                formData.message
-                  ? `<p><strong>Additional Information:</strong> ${formData.message}</p>`
-                  : ""
-              }
-            </div>
-            
-            <h3>What's Next?</h3>
-            <ul>
-              <li>Our team will review your request within 24 hours</li>
-              <li>We'll contact you via email or phone to confirm the consultation details</li>
-              <li>If needed, we may suggest alternative dates/times based on availability</li>
-              <li>A calendar invite will be sent once the consultation is confirmed</li>
-            </ul>
-            
-            <p>If you have any urgent questions or need to make changes to your request, please don't hesitate to contact us directly.</p>
-            
-            <p>We look forward to helping your business achieve its goals!</p>
-            
-            <p>Best regards,<br>
-            <strong>The Business Consulting Team</strong></p>
-          </div>
-          
-          <div class="footer">
-            <p>This is an automated confirmation email. Please do not reply directly to this message.</p>
-            <p>Contact us: <a href="mailto:info@higher.com.ng">info@higher.com.ng</a></p>
-          </div>
-        </body>
-      </html>
+
+        <h3 style="margin-top: 0; font-size: 16px; color: #111;">What's Next?</h3>
+        <ul style="padding-left: 20px; margin: 15px 0;">
+          <li>Our team will review your request within 24 hours</li>
+          <li>We'll contact you via email or phone to confirm the consultation details</li>
+          <li>If needed, we may suggest alternative dates/times based on availability</li>
+          <li>A calendar invite will be sent once the consultation is confirmed</li>
+        </ul>
+
+        <p>If you have any urgent questions or need to make changes to your request, please don't hesitate to contact us directly.</p>
+
+        <p>We look forward to helping your business achieve its goals!</p>
+
+        <p style="margin: 30px 0 0 0;">Best regards,<br>
+        <strong>The ${companyName} Team</strong></p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="max-width: 600px; margin: 20px auto 0 auto; padding: 12px 20px; text-align: center;">
+      <p style="font-size: 12px; color: #999; line-height: 1.5; margin: 0;">
+        This is an automated confirmation email. Please do not reply directly to this message.<br>
+        Contact us: <a href="mailto:info@gambrillspartners.com" style="color: #007bff; text-decoration: none;">info@gambrillspartners.com</a>
+      </p>
+    </div>
+  </body>
+</html>
+
     `;
 
     // Email content for the admin/team notification

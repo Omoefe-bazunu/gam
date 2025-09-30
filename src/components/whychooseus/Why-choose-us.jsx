@@ -1,13 +1,24 @@
+"use client";
 import { MdArrowOutward } from "react-icons/md";
 
 const ProjectCard = ({ image, mainText, subText }) => (
-  <div className="w-full p-4 border rounded-lg shadow-md text-primary-blue hover:scale-105 text-center bg-gray-100 hover:shadow-xl transition-shadow duration-300 ease-in-out hover:text-white hover:bg-primary-blue sm:w-1/4">
-    <img
-      src={image}
-      alt={mainText}
-      className="w-full h-64 object-cover rounded-lg"
-    />
-    <h3 className="mt-2 text-sm font-bold font-primary">{mainText}</h3>
+  <div className="w-full p-4 border rounded-lg shadow-md text-primary-blue hover:scale-105 text-center bg-gray-100 hover:shadow-xl transition-all duration-300 ease-in-out hover:text-white hover:bg-primary-blue sm:w-1/4">
+    {/* Image wrapper */}
+    <div className="w-full mb-4 overflow-hidden rounded-lg bg-gray-200">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={image}
+        alt={mainText}
+        className="w-full h-auto object-contain transition-transform duration-300 hover:scale-105"
+        loading="lazy"
+        onError={(e) => {
+          e.target.src = "/fallback-service.jpg";
+          e.target.className = "w-full h-auto object-contain p-4";
+        }}
+      />
+    </div>
+
+    <h3 className="text-sm font-bold font-primary">{mainText}</h3>
     <p className="text-sm font-secondary font-light">{subText}</p>
   </div>
 );

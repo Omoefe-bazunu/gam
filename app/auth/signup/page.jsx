@@ -1,19 +1,38 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation"; // ✅ Import router
 import { useAuth } from "@/src/contexts/AuthContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Signup() {
+  const router = useRouter(); // ✅ Initialize router
   const { googleSignIn, signup, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const sendWelcomeEmail = async (userEmail) => {
+    try {
+      await fetch("/api/send-welcome-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: userEmail }),
+      });
+    } catch (err) {
+      console.error("Failed to send welcome email:", err);
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     try {
-      await googleSignIn();
+      const result = await googleSignIn();
+      if (result?.user?.email) {
+        await sendWelcomeEmail(result.user.email);
+        setShowSuccess(true);
+      }
     } catch (err) {
       setError("Failed to sign up with Google. Please try again.");
     }
@@ -26,6 +45,8 @@ export default function Signup() {
 
     try {
       await signup(email, password);
+      await sendWelcomeEmail(email);
+      setShowSuccess(true);
     } catch (err) {
       setError("Failed to sign up. Please check your credentials.");
       console.error(err);
@@ -127,6 +148,40 @@ export default function Signup() {
           </div>
         </motion.div>
       </div>
+
+      {/* ✅ Success Modal */}
+      <AnimatePresence>
+        {showSuccess && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white rounded-2xl shadow-xl p-8 text-center max-w-sm w-full"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h2 className="text-2xl font-bold text-green-600 mb-4">
+                🎉 Signup Successful!
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Welcome aboard! We’ve sent a welcome email to <br />
+                <span className="font-semibold">{email}</span>.
+              </p>
+              <button
+                onClick={() => router.push("/")} // ✅ Redirect to homepage
+                className="px-6 py-2 bg-primary-blue text-white rounded-full hover:bg-blue-700 transition-colors"
+              >
+                Continue
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

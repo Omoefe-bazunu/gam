@@ -205,24 +205,28 @@ export default function AboutUs() {
             transition={{ duration: 0.45 }}
           >
             <motion.div
-              className="relative overflow-hidden rounded-2xl shadow-2xl border border-gray-100"
+              className="relative overflow-hidden rounded-2xl shadow-2xl border border-gray-100 w-full"
               whileHover={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 120 }}
-              style={{ width: "100%", maxWidth: 520, height: 520 }}
+              style={{ maxWidth: 520 }}
             >
-              <img
-                src={featuredImage}
-                alt="Featured"
-                className="w-full h-full object-cover"
-                style={{ display: "block" }}
-              />
+              <div className="w-full aspect-[1/1]">
+                {" "}
+                {/* Keeps a square card, scales with width */}
+                <img
+                  src={featuredImage}
+                  alt="Featured"
+                  className="w-full h-full object-cover"
+                  style={{ display: "block" }}
+                />
+              </div>
               <div
                 style={{
                   position: "absolute",
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  height: 80,
+                  height: "20%",
                   background:
                     "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.12) 100%)",
                 }}
